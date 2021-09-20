@@ -1,0 +1,11 @@
+LIBRARY
+
+EXPORTS
+    about
+    version
+    SetBufferSizeMax
+    LastErr
+    SendFile
+    RecvFile
+    SendFileAsync
+    RecvFileAsync
