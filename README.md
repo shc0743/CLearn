@@ -1,2 +1,2 @@
 # CLearn
-Demo projects when learning C/C++
+Demo projects while learning C/C++
