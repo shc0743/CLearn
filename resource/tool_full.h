@@ -6,4 +6,5 @@
 #define _TOOL_SHC0743_FULL
 #include "tool_core.h"
 #include "tool_ui.h"
+#include "tool_addon.h"
 #endif

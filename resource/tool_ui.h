@@ -20,8 +20,8 @@
 namespace mt_ui2 {
 	using namespace std;
 
-	constexpr LPCWSTR window_class_name = L"TsUiLib_ui2";
-	HINSTANCE hInstance = NULL;
+	constexpr LPCTSTR window_class_name = _T("TsUiLib.ui2.base");
+	extern HINSTANCE hInstance;
 
 	ATOM MyRegisterClass(HINSTANCE);
 	bool UiInit();
@@ -29,6 +29,8 @@ namespace mt_ui2 {
 	class UiBase {
 	protected:
 		HWND m_hWnd;
+		string m_uuid;
+		STRING title;
 		struct {
 			long x, y;
 			long w, h;
@@ -40,7 +42,7 @@ namespace mt_ui2 {
 
 		friend ATOM MyRegisterClass(HINSTANCE);
 
-		bool InitInstance(HINSTANCE, int);
+		bool create(HINSTANCE, int);
 		static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		WPARAM MessageLoop();
 	};
@@ -55,9 +57,25 @@ namespace mt_ui2 {
 	};
 
 	class InputDlg : public DlgBase {
+	protected:
+		HWND m_TextControl;
+		HWND m_EditControl;
+		HWND m_BtnOk;
+		HWND m_BtnCancel;
+
+		WPARAM MessageLoop();
+		static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	public:
-		DlgBase();
-		~DlgBase();
+		InputDlg();
+		~InputDlg();
+
+		static constexpr long WINDOW_WIDTH_AUTO = CW_USEDEFAULT;
+		static constexpr long WINDOW_HEIGHT_AUTO = CW_USEDEFAULT;
+
+		bool create(STRING title, STRING text, STRING btn1, STRING btn2, STRING DefaultText = _T(""),
+			bool closable = true, long w = WINDOW_WIDTH_AUTO, long h = WINDOW_HEIGHT_AUTO);
+		LPCTSTR GetInputText();
 	};
 };
 
