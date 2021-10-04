@@ -1,0 +1,5 @@
+mklink "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin\3" "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin\MFCMakeSymbolLink.exe"  >stdout 2>stderr
+mklink /H "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin\mklink.htm" "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin\mklink.log"  >stdout 2>stderr
+mklink /D "this" "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin"  >stdout 2>stderr
+mklink /D "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin\this" "D:\software\VisualStudio\source\repos\MFCMakeSymbolLink\bin"  >stdout 2>stderr
+mklink "D:\software\Qt\source_repos\SocketRemoteFile\sock_dll.h" "D:\software\VisualStudio\source\repos\SocketFileTransfer\SocketFileTransferDLL\dllmain.h"  >stdout 2>stderr

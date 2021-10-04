@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerWorkingDirectory>..\bin</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--action=open_url --value=bilibili.com --image="C:\Users\shc07\Pictures\syxki.jpg" --title=哈士奇 --settingsbin="D:\software\VisualStudio\source\repos\ImageAdPopup\bin\ImageAdPopup.exe" --reportbin="D:\software\VisualStudio\source\repos\ImageAdPopup\bin\ImageAdPopup.exe" --aboutbin="D:\software\VisualStudio\source\repos\ImageAdPopup\bin\ImageAdPopup.exe"</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+</Project>
