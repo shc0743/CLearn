@@ -1,0 +1,12 @@
+MyConfirmBox.exe Help Document
+========
+Usage:
+        MyConfirmBox.exe ConfirmText [--help] [--count=] [--btn1=] [--btn2=] [--title=] [--topalert=]
+Paramters:
+
+ConfirmText    nConfirmText
+--help         Show this help document.
+--count        Set the count of confirm.
+--btni         Set the text of the button[i].
+--title        Set window title.
+--topalert     Set the top text of the confirm dialog.
