@@ -11,36 +11,74 @@
 
 HINSTANCE mt_ui2::hInstance = NULL;
 
-bool mt_ui2::UiInit() {
-	// 执行应用程序初始化:
+// 执行应用程序初始化:
+signed char mt_ui2::UiInit() {
+	static bool inited = false;
+	if (inited) return -1;
+	inited = true;
 	hInstance = ::GetModuleHandle(NULL);
-	if (!hInstance) return false;
+	if (!hInstance) return 0;
 	MyRegisterClass(hInstance);
-	return true;
+	return 1;
 }
 //
 //  函数: MyRegisterClass()
 //
 //  目标: 注册窗口类。
 //
-ATOM mt_ui2::MyRegisterClass(HINSTANCE hInstance) {
-	WNDCLASSEXW wcex;
+ATOM* mt_ui2::MyRegisterClass(HINSTANCE hInstance) {
+	ATOM classes[3] = { 0 };
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
+	{
+		WNDCLASSEXW wcex;
+		wcex.cbSize = sizeof(WNDCLASSEX);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = UiBase::WndProc;
+		wcex.cbClsExtra = 0;
+		wcex.cbWndExtra = 0;
+		wcex.hInstance = hInstance;
+		wcex.hIcon = NULL;
+		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wcex.lpszMenuName = NULL;
+		wcex.lpszClassName = window_class_name;
+		wcex.hIconSm = NULL;
+		classes[0] = RegisterClassExW(&wcex);
+	}
+	{
+		WNDCLASSEXW wcex;
+		wcex.cbSize = sizeof(WNDCLASSEX);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = DlgBase::WndProc;
+		wcex.cbClsExtra = 0;
+		wcex.cbWndExtra = 0;
+		wcex.hInstance = hInstance;
+		wcex.hIcon = NULL;
+		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wcex.lpszMenuName = NULL;
+		wcex.lpszClassName = DlgBase::wcn;
+		wcex.hIconSm = NULL;
+		classes[1] = RegisterClassExW(&wcex);
+	}
+	{
+		WNDCLASSEXW wcex;
+		wcex.cbSize = sizeof(WNDCLASSEX);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = InputDlg::WndProc;
+		wcex.cbClsExtra = 0;
+		wcex.cbWndExtra = 0;
+		wcex.hInstance = hInstance;
+		wcex.hIcon = NULL;
+		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wcex.lpszMenuName = NULL;
+		wcex.lpszClassName = InputDlg::wcn;
+		wcex.hIconSm = NULL;
+		classes[2] = RegisterClassExW(&wcex);
+	}
 
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = UiBase::WndProc;
-	wcex.cbClsExtra = 0;
-	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = NULL;
-	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = window_class_name;
-	wcex.hIconSm = NULL;
-
-	return RegisterClassExW(&wcex);
+	return classes;
 }
 
 
@@ -49,6 +87,7 @@ ATOM mt_ui2::MyRegisterClass(HINSTANCE hInstance) {
 mt_ui2::UiBase::UiBase() {
 	this->m_hWnd = nullptr;
 	this->m_uuid = ::GenerateUUID();
+	this->window_class_name = mt_ui2::window_class_name;
 	AutoZeroMemory(this->WindowFlag);
 }
 
@@ -90,7 +129,7 @@ WPARAM mt_ui2::UiBase::MessageLoop()
 bool mt_ui2::UiBase::create(HINSTANCE hInstance, int nCmdShow) {
 	m_hWnd = CreateWindowEx(0, window_class_name, title.c_str(), WS_OVERLAPPEDWINDOW,
 		WindowFlag.x, WindowFlag.y, WindowFlag.w, WindowFlag.h,
-		nullptr, nullptr, hInstance, nullptr);
+		nullptr, (HMENU)this, hInstance, nullptr);
 
    if (!m_hWnd) {
 	  return false;
@@ -106,7 +145,7 @@ bool mt_ui2::UiBase::create(HINSTANCE hInstance, int nCmdShow) {
 
 // DlgBase
 mt_ui2::DlgBase::DlgBase() : UiBase() {
-
+	this->window_class_name = wcn;
 }
 
 mt_ui2::DlgBase::~DlgBase() {
@@ -133,7 +172,7 @@ LRESULT mt_ui2::DlgBase::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 		}
 		break;
 	default:
-		return ::DefWindowProc(hWnd, msg, wParam, lParam);
+		return UiBase::WndProc(hWnd, msg, wParam, lParam);
 	}
 	return 0;
 }
@@ -142,8 +181,16 @@ LRESULT mt_ui2::DlgBase::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 // InputDlg
 mt_ui2::InputDlg::InputDlg() : DlgBase() {
+	this->window_class_name = wcn;
+	AutoZeroMemory(PLACEHOLDER);
 	m_TextControl = ::CreateWindowA("static", "", WS_CHILD | WS_VISIBLE, 10, 10,
-		100, 13, m_hWnd, (HMENU)&this->m_uuid, hInstance, 0);
+		100, 13, m_hWnd, (HMENU)&PLACEHOLDER[0], hInstance, 0);
+	m_EditControl = ::CreateWindowA("edit", "", WS_CHILD | WS_VISIBLE, 10, 10,
+		100, 13, m_hWnd, (HMENU)&PLACEHOLDER[1], hInstance, 0);
+	m_BtnOk = ::CreateWindowA("button", "&OK", WS_CHILD | WS_VISIBLE, 10, 10,
+		100, 13, m_hWnd, (HMENU)&PLACEHOLDER[2], hInstance, 0);
+	m_BtnCancel = ::CreateWindowA("button", "&Cancel", WS_CHILD | WS_VISIBLE, 10, 10,
+		100, 13, m_hWnd, (HMENU)&PLACEHOLDER[3], hInstance, 0);
 }
 
 mt_ui2::InputDlg::~InputDlg(){
@@ -152,6 +199,31 @@ mt_ui2::InputDlg::~InputDlg(){
 	::DestroyWindow(m_EditControl);
 	::DestroyWindow(m_BtnOk);
 	::DestroyWindow(m_BtnCancel);
+}
+
+LRESULT mt_ui2::InputDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	switch (msg) {
+	case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+			// TODO: 在此处添加使用 hdc 的任何绘图代码...
+			EndPaint(hWnd, &ps);
+		}
+		break;
+	case WM_KEYDOWN:
+		switch (wParam) {
+		case VK_ESCAPE:
+			::SendMessage(hWnd, WM_CLOSE, 0, 0);
+			break;
+		default:
+			return ::DefWindowProc(hWnd, msg, wParam, lParam);
+		}
+		break;
+	default:
+		return DlgBase::WndProc(hWnd, msg, wParam, lParam);
+	}
+	return 0;
 }
 
 bool mt_ui2::InputDlg::create(STRING title, STRING text, STRING btn1, STRING btn2, STRING DefaultText,

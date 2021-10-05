@@ -54,7 +54,8 @@ void CDlgSelectProcess::OnBnClickedOk() {
 	wstring ws = str.GetBuffer();
 	vector<wstring> wsl;
 	str_split(ws, L"|", wsl);
-	CProcessSeparateConfDlg::mainInfo = Process.find(atoi_t(wsl[1]));
+	auto _lvalue_t_0001 = Process.find(atoi_t(wsl[1]));
+	memcpy(&CProcessSeparateConfDlg::mainInfo, &_lvalue_t_0001, sizeof(ProcessInfo));
 	if (!(CProcessSeparateConfDlg::mainInfo.Handle())) {
 		MessageBox(L"进程不存在!", L"ERROR", MB_ICONERROR);
 	} else

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerWorkingDirectory>../bin</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments> -G -s -f"E:\download\【24小时不循环】圆周率之歌（42万位）-葛平.flv" --of="C:\Users\shc07\Desktop\GetWebFile" -X104857600</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RESOURCE_FILE>MFCSplitFile.rc</RESOURCE_FILE>
+  </PropertyGroup>
+</Project>

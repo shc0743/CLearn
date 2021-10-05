@@ -23,14 +23,15 @@ namespace mt_ui2 {
 	constexpr LPCTSTR window_class_name = _T("TsUiLib.ui2.base");
 	extern HINSTANCE hInstance;
 
-	ATOM MyRegisterClass(HINSTANCE);
-	bool UiInit();
+	ATOM* MyRegisterClass(HINSTANCE);
+	signed char UiInit();
 
 	class UiBase {
 	protected:
 		HWND m_hWnd;
 		string m_uuid;
 		STRING title;
+		LPCTSTR window_class_name;
 		struct {
 			long x, y;
 			long w, h;
@@ -40,7 +41,7 @@ namespace mt_ui2 {
 		UiBase();
 		~UiBase();
 
-		friend ATOM MyRegisterClass(HINSTANCE);
+		friend ATOM* MyRegisterClass(HINSTANCE);
 
 		bool create(HINSTANCE, int);
 		static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -48,10 +49,13 @@ namespace mt_ui2 {
 	};
 
 	class DlgBase : public UiBase {
+	public:
+		static constexpr LPCTSTR wcn = _T("TsUiLib.ui2.DlgBase");
 	protected:
 		DlgBase();
 		~DlgBase();
 
+		friend ATOM* MyRegisterClass(HINSTANCE);
 		static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		
 	};
@@ -62,14 +66,17 @@ namespace mt_ui2 {
 		HWND m_EditControl;
 		HWND m_BtnOk;
 		HWND m_BtnCancel;
+		char PLACEHOLDER[4];
 
 		WPARAM MessageLoop();
 		static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		friend ATOM* MyRegisterClass(HINSTANCE);
 
 	public:
 		InputDlg();
 		~InputDlg();
 
+		static constexpr LPCTSTR wcn = _T("TsUiLib.ui2.InputDlg");
 		static constexpr long WINDOW_WIDTH_AUTO = CW_USEDEFAULT;
 		static constexpr long WINDOW_HEIGHT_AUTO = CW_USEDEFAULT;
 

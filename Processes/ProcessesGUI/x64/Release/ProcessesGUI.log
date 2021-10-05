@@ -1,0 +1,15 @@
+﻿  pch.cpp
+  tool.cpp
+  ProcessesGUI.cpp
+  ProcessesGUIDlg.cpp
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(178,48): warning C4311: “类型强制转换”: 从“POSITION”到“int”的指针截断
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(178,48): warning C4302: “类型强制转换”: 从“POSITION”到“int”截断
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(179,15): warning C4244: “参数”: 从“DWORD_PTR”转换到“const DWORD”，可能丢失数据
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(191,26): warning C4244: “参数”: 从“ULONG64”转换到“int”，可能丢失数据
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(192,27): warning C4244: “参数”: 从“ULONG64”转换到“int”，可能丢失数据
+D:\software\VisualStudio\source\repos\Processes\ProcessesGUI\ProcessesGUIDlg.cpp(193,27): warning C4244: “参数”: 从“ULONG64”转换到“int”，可能丢失数据
+  正在生成代码
+  Previous IPDB was built with incompatible compiler, fall back to full compilation.
+  All 994 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  ProcessesGUI.vcxproj -> D:\software\VisualStudio\source\repos\Processes\bin\ProcessesGUI.exe
