@@ -1,0 +1,16 @@
+Help Document
+=============
+Usage: 
+	MFCSplitFile.exe [(--help|/?)] [[-G] [(-s -f --of -X [-M])|(-m[ (--files|-M) -o)]]]
+
+Paramters: 
+--help|/? Show this help.
+-G        Use GUI
+-s        Split File
+-m        Merge file
+-f        The path of input file
+--files   Paths of input files
+-o        Output file
+--of      Output folder
+-X        Max size (Byte)
+-M        Using meta file
