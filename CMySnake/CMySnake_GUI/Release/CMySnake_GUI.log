@@ -1,8 +1,0 @@
-﻿D:\software\VisualStudio\main\2019\comm\community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(499,5): warning MSB8004: Output 目录未以斜杠结尾。  此生成实例将添加斜杠，因为必须有这个斜杠才能正确计算 Output 目录。
-  CMySnake_GUI.cpp
-  正在生成代码
-  1 of 662 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    1 functions had inline decision re-evaluated but remain unchanged
-  已完成代码的生成
-  CMySnake_GUI.vcxproj -> D:\software\VisualStudio\source\repos\CMySnake\bin\x86\CMySnake_GUI.exe
