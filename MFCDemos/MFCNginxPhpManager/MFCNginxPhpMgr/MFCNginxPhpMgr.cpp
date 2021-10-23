@@ -29,6 +29,8 @@ CmdLine cl;
 #error "ERROR"
 #endif
 
+using ::exit;
+
 CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 {
 	// 支持重新启动管理器
@@ -65,10 +67,10 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 			progSet.PhpCheck = a;
 		} else progSet.PhpCheck = 0;
 	}
-	cl.Split(::GetCommandLine());
+	cl.parse(::GetCommandLine());
 
 	bool True = true;
-	AssertEx(True, true);
+	AssertEx_(True,__LINE__,__FILE__,true);
 
 	if (cl.argc() > 2) {
 		::MessageBoxA(0, ("ParseError: Unexpected CommandLine Argument Count: " + to_string(cl.argc())).c_str(),
@@ -79,7 +81,7 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 	if (cl.argc() == 1) { //如果只有一个命令行参数
 		//如果不是管理员
 		if (!IsRunAsAdmin()) {
-			if (MessageBox(NULL, L"Warning:\nThe program is not running as an administrator.\n\nClick \"Retry\" "
+			if (MessageBox(0, L"Warning:\nThe program is not running as an administrator.\n\nClick \"Retry\" "
 				"to run as admin,or click CANCEL to ignore the warning.", L"Warning",
 				MB_ICONWARNING | MB_RETRYCANCEL) == IDRETRY) {
 				ostringstream oss;
@@ -90,26 +92,7 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 		//如果已经存在其他进程...
 		vector<DWORD>* pid_list = ::GetProcessIdFromAll(s2ws(::GetProgramInfo().name).c_str());
 		if (pid_list->size() > 2) { //有其他进程
-			{
-				STRING sConLin_s = L"\"" + s2ws(::GetProgramDir()) + L"\" --gui";
-				STARTUPINFO si;
-				PROCESS_INFORMATION pi;
-				ZeroMemory(&si, sizeof(si));
-				ZeroMemory(&pi, sizeof(pi));
-				if (!::CreateProcess(
-					NULL, const_cast<wchar_t*>(sConLin_s.c_str()), // 命令行字符串  
-					NULL, NULL, false, 0, NULL, NULL,
-					&si, // 决定新进程的主窗体如何显示的STARTUPINFO结构体  
-					&pi  // 接收新进程的识别信息的PROCESS_INFORMATION结构体  
-				)) {
-					::MessageBoxA(nullptr, ("Error: CreateProcess Error: StatusCode:" + to_string(::GetLastError()) +
-						"\nAt Creating Process with Command-Line Switch \"--gui").c_str(),
-						"Error: CreateProcess Error",
-						MB_ICONERROR); exit(::GetLastError());
-				}
-				CloseHandle(pi.hThread );
-				CloseHandle(pi.hProcess);
-			} //创建新的GUI进程
+			Process.StartOnly(L"\"" + s2ws(::GetProgramDir()) + L"\" --gui"); //创建新的GUI进程
 			exit(0); //退出当前进程
 		}
 		delete pid_list;
@@ -117,24 +100,24 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 		LPTSTR cWinDir = new TCHAR[MAX_PATH];
 		::GetCurrentDirectory(MAX_PATH, cWinDir);
 
-		STRING sConLin_s = L"\""+s2ws(::GetProgramDir())+L"\" --php-fastcgi";
+		STRING sConLin_s = L"\"" + s2ws(::GetProgramDir()) + L"\" --php-fastcgi";
 
 		//创建亿个新进程  
-		if (::StartProcess(sConLin_s).hProcess==NULL){
+		if (!Process.StartOnly(sConLin_s)){
 			::MessageBoxA(nullptr, ("Error: CreateProcess Error: StatusCode:" + to_string(::GetLastError()) +
 				"\nAt Creating Process with Command-Line Switch \"--php-fastcgi").c_str(),
 				"Error: CreateProcess Error",
 				MB_ICONERROR);exit(::GetLastError());
 		} 
 		sConLin_s = L"\""+s2ws(::GetProgramDir())+L"\" --ico";
-		if (::StartProcess(sConLin_s).hProcess==NULL){
+		if (!Process.StartOnly(sConLin_s)){
 			::MessageBoxA(nullptr, ("Error: CreateProcess Error: StatusCode:" + to_string(::GetLastError()) +
 				"\nAt Creating Process with Command-Line Switch \"--ico").c_str(),
 				"Error: CreateProcess Error",
 				MB_ICONERROR);exit(::GetLastError());
 		}
 		sConLin_s = L"\""+s2ws(::GetProgramDir())+L"\" --gui";
-		if (::StartProcess(sConLin_s).hProcess==NULL){
+		if (!Process.StartOnly(sConLin_s)){
 			::MessageBoxA(nullptr, ("Error: CreateProcess Error: StatusCode:" + to_string(::GetLastError()) +
 				"\nAt Creating Process with Command-Line Switch \"--ico").c_str(),
 				"Error: CreateProcess Error",
@@ -142,8 +125,7 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 		}
 		exit(0);
 	}
-	vector<wstring> ag = cl.Get();
-	if (ag[1] == L"--help") {
+	if (cl[1] == L"--help") {
 		::MessageBoxA(nullptr, 
 			"WNMP Help Message\n"
 			"========\n"
@@ -156,12 +138,12 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 			,"WNMP Help Message", MB_ICONINFORMATION);
 		exit(0);
 	}
-	if (ag[1] == L"--reset") {
+	if (cl[1] == L"--reset") {
 		int ur=::MessageBoxA(nullptr, "Are you want you to continue to reset all program settings?","Question", MB_ICONQUESTION | MB_YESNO);
 		if(ur==IDYES){
 			{
 				//Delete all other process
-				HANDLE hdl = null, thishdl = GetModuleHandle(null);
+				HANDLE hdl = 0, thishdl = GetModuleHandle(0);
 				auto inf = ::GetProgramInfo();
 				int selfid = GetCurrentProcessId();
 				vector<DWORD>* nids = GetProcessIdFromAll(s2ws(inf.name).c_str());
@@ -185,7 +167,7 @@ CMFCNginxPhpMgrApp::CMFCNginxPhpMgrApp()
 		exit(0);
 	}
 
-	wstring arg1 = ag.at(1);
+	wstring arg1 = cl.at(1);
 	if (arg1 != L"--php-fastcgi" && arg1 != L"--ico" && arg1 != L"--gui" && arg1 != L"--setup") {
 		::MessageBox(nullptr, (L"ParseError: Unexpected Command-Line Token: \""+arg1+L"\"").c_str(),
 				L"ParseError",
@@ -262,19 +244,18 @@ BOOL CMFCNginxPhpMgrApp::InitInstance()
 	} while (0);
 
 	//判断命令行参数
-	vector<wstring> carg = cl.Get();
-	AssertEx(carg.size() == 2, true);
-	if (carg[1] == L"--ico") {
+	AssertEx_(cl.size() == 2, __LINE__, __FILE__, true);
+	if (cl[1] == L"--ico") {
 		CMFCNginxPhpMgrDlg dlg;
 		m_pMainWnd = &dlg;
 		dlg.isIconBox = true;
 		dlg.DoModal();
 	}
-	if (carg[1] == L"--php-fastcgi") {
+	if (cl[1] == L"--php-fastcgi") {
 		CDlgCheckPhpCgi dlg;
 		dlg.DoModal();
 	}
-	if (carg[1] == L"--setup") {
+	if (cl[1] == L"--setup") {
 		CDlgSetup dlg;
 		dlg.DoModal();
 		exit(0);
@@ -283,7 +264,7 @@ BOOL CMFCNginxPhpMgrApp::InitInstance()
 	CMFCNginxPhpMgrDlg dlg;
 	m_pMainWnd = &dlg;
 	INT_PTR nResponse = 0;
-	if(carg[1] == L"--gui") nResponse = dlg.DoModal();
+	if(cl[1] == L"--gui") nResponse = dlg.DoModal();
 	if (nResponse == -1)
 	{
 		TRACE(traceAppMsg, 0, "警告: 对话框创建失败，应用程序将意外终止。\n");

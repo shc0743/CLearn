@@ -45,7 +45,7 @@ void CDlgExitConf::OnBnClickedCancel(){
 
 
 void CDlgExitConf::OnBnClickedOk(){
-	HANDLE hdl = null,thishdl = GetModuleHandle(null);
+	HANDLE hdl = 0,thishdl = GetModuleHandle(0);
 	auto inf = ::GetProgramInfo();
 	int selfid = GetCurrentProcessId();
 	vector<DWORD>* nids = GetProcessIdFromAll(s2ws(inf.name).c_str());

@@ -43,10 +43,8 @@ void __stdcall CheckPhpCgi(HWND h, UINT u, UINT_PTR id, DWORD d) {
 		string ngf = progSet.php_path;
 		ngf = ngf.substr(0, ngf.find_last_of("php-cgi.exe") - 11);
 		::SetCurrentDirectoryA(ngf.c_str());
-		PROCESS_INFORMATION& pi = StartProcess(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
+		PROCESS_INFORMATION pi = Process.Start_HiddenWindow(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
 		Sleep(500);
-		HWND h = ::FindWindow(NULL, s2wc(progSet.php_path));
-		if (h != NULL) ::ShowWindow(h, 0);
 		::SetCurrentDirectoryW(s2ws(::GetProgramInfo().path).c_str());
 		fstream log("php_die_log.log", ios::app);
 		log << "[timestamp " << time(0) << "] php-cgi exited,restart it,";

@@ -90,7 +90,7 @@ LRESULT CMFCNginxPhpMgrDlg::onShowTask(WPARAM wParam, LPARAM lParam) //wParam接
 		CMenu* lpmenu = menu.GetSubMenu(0);
 		//确定弹出式菜单的位置
 		SetForegroundWindow();
-		lpmenu->TrackPopupMenu(TPM_LEFTALIGN, lpoint->x, lpoint->y, this);
+		lpmenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, lpoint->x, lpoint->y, this);
 		//资源回收
 		HMENU hmenu = lpmenu->Detach();
 		lpmenu->DestroyMenu();
@@ -163,9 +163,7 @@ BOOL CMFCNginxPhpMgrDlg::OnInitDialog()
 		GetDlgItem(IDC_BUTTON_STOP_PHP)->EnableWindow(1);
 		GetDlgItem(IDC_BUTTON_START_PHP)->EnableWindow(0);
 	}
-
-	__ServiceMgr smr;
-	if (smr.Query(L"MySQL")==smr.STATUS_START) {
+	if (ServiceManager.Query(L"MySQL")==ServiceManager.STATUS_START) {
 		GetDlgItem(IDC_STAT_MYSQL_OK)->ShowWindow(1);
 		GetDlgItem(IDC_STAT_MYSQL_NO)->ShowWindow(0);
 		GetDlgItem(IDC_BUTTON_STOP_MYSQL)->EnableWindow(1);
@@ -258,7 +256,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStopWindows(){
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestNginx2(){
 	if (MessageBox(L"重新启动 服务 MySql?", L"WNMP", MB_ICONQUESTION | MB_YESNOCANCEL) == IDYES) {
 		//ExitWindowsEx(EWX_POWEROFF, SHTDN_REASON_MAJOR_APPLICATION);
-		ServiceMgr.ReStart("mysql");
+		ServiceManager.ReStart("mysql");
 		ReStart();
 	}
 }
@@ -270,49 +268,27 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonConfMysql(){
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonProgramSet(){
-	CloseHandle(StartProcess(s2ws("\""+GetProgramDir()+"\" --setup")).hProcess);
+	Process.StartOnly(s2ws("\""+GetProgramDir()+"\" --setup"));
 }
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonStopNginx(){
-	HANDLE hdl = null, thishdl = GetModuleHandle(null);
-	vector<DWORD>* nids = GetProcessIdFromAll(L"nginx.exe");
-	vector<DWORD>& nidraws = *nids;
-	for (auto nid : nidraws) {
-		hdl = GetProcessHandle(nid);
-		TerminateProcess(hdl, 0);
-	}
-	delete nids;
+	Process.killall(L"nginx.exe");
 	//MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
 	ReStart();
 }
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartNginx(){
-	string ngf = progSet.nginx_path;
-	ngf = ngf.substr(0, ngf.find_last_of("nginx.exe") - 9);
-	::SetCurrentDirectoryA(ngf.c_str());
-	system(("start " + progSet.nginx_path).c_str());
-	::SetCurrentDirectoryW(s2ws(::GetProgramInfo().path).c_str());
+	Process.StartOnly(s2ws(progSet.nginx_path));
 	//MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
 	ReStart();
 }
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestNginx(){
-	HANDLE hdl = null, thishdl = GetModuleHandle(null);
-	vector<DWORD>* nids = GetProcessIdFromAll(L"nginx.exe");
-	vector<DWORD>& nidraws = *nids;
-	for (auto nid : nidraws) {
-		hdl = GetProcessHandle(nid);
-		TerminateProcess(hdl, 0);
-	}
-	delete nids;
-	string ngf = progSet.nginx_path;
-	ngf = ngf.substr(0, ngf.find_last_of("nginx.exe") - 9);
-	::SetCurrentDirectoryA(ngf.c_str());
-	system(("start " + progSet.nginx_path).c_str());
-	::SetCurrentDirectoryW(s2ws(::GetProgramInfo().path).c_str());
+	Process.killall(L"nginx.exe");
+	Process.StartOnly(s2ws(progSet.nginx_path));
 	//MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
 	ReStart();
 }
@@ -323,15 +299,14 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonConfNginx(){
 	ngf = ngf.substr(0,ngf.find_last_of("nginx.exe")-9);
 	ngf += "\\conf\\nginx.conf";
 	string str = "explorer \"" + ngf + "\"";
-	system(str.c_str());
+	Process.StartOnly(s2ws(str));
 }
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartMysql(){
-	__ServiceMgr s;
-	UINT i=s.Start("mysql");
+	UINT i=ServiceManager.Start("mysql");
 	if (i != 0) {
-		MessageBox((L"错误: 错误ID" + to_wstring(i)).c_str(), L"WNMP", MB_ICONERROR);
+		MessageBox((L"错误: "s + LastErrorStrW()).c_str(), L"WNMP", MB_ICONERROR);
 	}
 	else {
 	    //MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
@@ -341,10 +316,9 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartMysql(){
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonStopMysql(){
-	__ServiceMgr s;
-	UINT i=s.Stop("mysql");
+	UINT i=ServiceManager.Stop("mysql");
 	if (i != 0) {
-		MessageBox((L"错误: 错误ID" + to_wstring(i)).c_str(), L"WNMP", MB_ICONERROR);
+		MessageBox((L"错误: "s + LastErrorStrW()).c_str(), L"WNMP", MB_ICONERROR);
 	}
 	else {
 	    //MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
@@ -363,7 +337,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonConfPhp(){
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonStopPhp(){
-	HANDLE hdl = null, thishdl = GetModuleHandle(null);
+	HANDLE hdl = NULL, thishdl = GetModuleHandle(0);
 	{
 		vector<DWORD>* nids = GetProcessIdFromAll(L"php-cgi.exe");
 		vector<DWORD>& nidraws = *nids;
@@ -385,7 +359,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStopPhp(){
 		delete nids;
 	}
 	//MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
-	StartProcess(s2ws(GetProgramDir()));
+	Process.StartOnly(s2ws(GetProgramDir()));
 	exit(0);
 }
 
@@ -395,13 +369,11 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartPhp()
 	string ngf = progSet.php_path;
 	ngf = ngf.substr(0, ngf.find_last_of("php-cgi.exe") - 11);
 	::SetCurrentDirectoryA(ngf.c_str());
-	PROCESS_INFORMATION& pi = StartProcess(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
+	PROCESS_INFORMATION pi = Process.Start_HiddenWindow(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
 	if (pi.hProcess == NULL) {
 		MessageBox((L"错误: 错误ID" + to_wstring(::GetLastError())).c_str(), L"WNMP", MB_ICONERROR); return;
 	}
 	Sleep(500);
-	HWND h = ::FindWindow(NULL, s2wc(progSet.php_path));
-	if (h != NULL) ::ShowWindow(h, 0);
 	::SetCurrentDirectoryW(s2ws(::GetProgramInfo().path).c_str());
 	//MessageBox(L"完成。", L"WNMP", MB_ICONINFORMATION);
 	{
@@ -416,7 +388,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartPhp()
 		}
 		delete nids;
 	}
-	StartExecute(s2ws(GetProgramDir()));
+	Process.StartOnly(s2ws(GetProgramDir()));
 	exit(0);
 }
 
@@ -424,7 +396,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonStartPhp()
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestPhp(){
 	{
 		//stop
-		HANDLE hdl = null;
+		HANDLE hdl = NULL;
 		vector<DWORD>* nids = GetProcessIdFromAll(L"php-cgi.exe");
 		vector<DWORD>& nidraws = *nids;
 		for (auto nid : nidraws) {
@@ -436,7 +408,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestPhp(){
 	string ngf = progSet.php_path;
 	ngf = ngf.substr(0, ngf.find_last_of("php-cgi.exe") - 11);
 	::SetCurrentDirectoryA(ngf.c_str());
-	PROCESS_INFORMATION& pi = StartProcess(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
+	PROCESS_INFORMATION pi = Process.Start(s2ws("\"" + progSet.php_path + "\" -b 127.0.0.1:9000 -c \"" + ngf + "\\php.ini\""));
 	if (pi.hProcess == NULL) {
 		MessageBox((L"错误: 错误ID" + to_wstring(::GetLastError())).c_str(), L"WNMP", MB_ICONERROR); return;
 	}
@@ -450,8 +422,7 @@ void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestPhp(){
 
 
 void CMFCNginxPhpMgrDlg::OnBnClickedButtonRestMysql(){
-	__ServiceMgr s;
-	UINT i = s.Stop("mysql");
-	i = s.Start("mysql");
+	UINT i = ServiceManager.Stop("mysql");
+	i = ServiceManager.Start("mysql");
 	ReStart();
 }

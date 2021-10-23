@@ -13,13 +13,13 @@ exit /b 1
 
 :help
 echo Usage:
-echo     %0 [/?] (add|commit|push|acp)
+echo     %0 [/?] (add^|commit^|push^|acp)
 echo;
-echo /?     Show this text.
-echo add    git add
+echo --help                        Show this text.
+echo add                           git add
 echo commit [CommitDescription]    git commit [-m "CommitDescription"]
-echo push    git push    (auto reconnect if error)
-echo acp [CommitDescription]    Simultaneous execution `%0 add` `%0 commit [-m "CommitDescription"]` and `%0 push`
+echo push                          git push    (auto reconnect if error)
+echo acp [CommitDescription]       Simultaneous execution `%0 add` `%0 commit [-m "CommitDescription"]` and `%0 push`
 exit /b 0
 
 :add
