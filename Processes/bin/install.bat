@@ -1,1 +1,0 @@
-@copy /y processes_x64.exe "D:\software\VisualStudio\source\sources\ps.exe"
