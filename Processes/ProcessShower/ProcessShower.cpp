@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include "../../resource/tool.h"
+using namespace std;
 
 void pid_exec(DWORD pid);
 void start_exec();
@@ -106,12 +107,12 @@ int main(int argc, char* argv[], char* env[]) {
 		if (isdigit(argv[2][0])) {
 			HANDLE hProcess = Process.find(atol(argv[2]));
 			if (!hProcess) {
-				colorset::r();
-				cerr << "[ERROR] Cannot OpenProcess!!!\n"; colorset::rst(); return 1;
+				SetConsColor(04);
+				cerr << "[ERROR] Cannot OpenProcess!!!\n"; SetConsColor(07); return 1;
 			}
 			if (!Process.crash(hProcess, 1_b)) {
-				colorset::r();
-				cerr << "[ERROR] Cannot crash process!!!\n";colorset::rst(); return 2;
+				SetConsColor(04);
+				cerr << "[ERROR] Cannot crash process!!!\n";SetConsColor(07); return 2;
 			}
 			::CloseHandle(hProcess);
 			return 0;
@@ -121,9 +122,9 @@ int main(int argc, char* argv[], char* env[]) {
 			Process.find(s2ws(argv[2]), pslist);
 			bool ok = true;
 			for (auto i : pslist) {
-				ok = ok && (Process.crash(i, true) ? true : ([i] { colorset::r();
+				ok = ok && (Process.crash(i, true) ? true : ([i] { SetConsColor(04);
 				fprintf(stderr, "[ERROR] Cannot crash process %d", (int)i);
-				colorset::rst(); return false; })());
+				SetConsColor(07); return false; })());
 			}
 			Process.CloseProcessHandles(pslist);
 			if (!ok) return 1;
@@ -134,26 +135,26 @@ int main(int argc, char* argv[], char* env[]) {
 		if (isdigit(argv[2][0])) {
 			ProcessInfo hProcess = Process.find(atol(argv[2]));
 			if (!hProcess) {
-				colorset::r();
+				SetConsColor(04);
 				cerr << "[ERROR] Cannot Open process " << argv[2] << "!!!\n";
-				colorset::rst(); return 1;
+				SetConsColor(07); return 1;
 			}
-			colorset::b();
+			SetConsColor(01);
 			cout << "[Info]  Closing " << hProcess.id() << "...\n"; cout.flush();
-			colorset::rst();
+			SetConsColor(07);
 			if (!Process.CloseAllWindows(hProcess, 1_b, 10000)) {
-				if (GetLastError() == 233) { colorset::r();
+				if (GetLastError() == 233) { SetConsColor(04);
 					cerr << "[ERROR] No visible windows found for this process\n";
-					colorset::rst(); return 3;
-				} colorset::r();
+					SetConsColor(07); return 3;
+				} SetConsColor(04);
 				fprintf(stderr, "[ERROR] Cannot close process %d's window or it was not ex"
 					"ited.\n[Info]  Try {RunAsAdmin} or run \"%s kill %s\" to terminate it.\n"
-					, int(hProcess.id()), argv[0], argv[2]); colorset::rst(); return 2;
+					, int(hProcess.id()), argv[0], argv[2]); SetConsColor(07); return 2;
 			}
 			else {
-				colorset::g();
+				SetConsColor(02);
 				printf("[OK]    %d was closed\n", int(hProcess.id()));
-				colorset::rst();
+				SetConsColor(07);
 			}
 			::CloseHandle(hProcess);
 			return 0;
@@ -165,25 +166,25 @@ int main(int argc, char* argv[], char* env[]) {
 			cout << "There are " << pslist.size() << " " << argv[2] <<
 				" in your computer.Trying to close them......" << endl;
 			for (auto i : pslist) {
-				colorset::b();
+				SetConsColor(01);
 				cout << "[Info]  Closing process " << i.id() << "...\n"; cout.flush();
-				colorset::rst();
+				SetConsColor(07);
 				if (!Process.CloseAllWindows(i, 1_b, 10000)) {
 					ok = false;
 					if (GetLastError() == 233) {
-						colorset::r();
+						SetConsColor(04);
 						cerr << "[ERROR] No visible windows found for process " <<
-							i.id() << "\n"; colorset::rst(); continue;
+							i.id() << "\n"; SetConsColor(07); continue;
 					}
-					colorset::r(); fprintf(stderr, "[ERROR] Cannot close process %s's window or "
-						"it was not exited.\n", argv[2]); colorset::b(); printf("[Info]  Try {RunA"
+					SetConsColor(04); fprintf(stderr, "[ERROR] Cannot close process %s's window or "
+						"it was not exited.\n", argv[2]); SetConsColor(01); printf("[Info]  Try {RunA"
 						"sAdmin} or run \"%s kill %s\" to terminate it.\n", argv[0], argv[2]); 
-					colorset::rst();
+					SetConsColor(07);
 				}
 				else {
-					colorset::g();
+					SetConsColor(02);
 					printf("[OK]    %d was closed\n", int(i.id()));
-					colorset::rst();
+					SetConsColor(07);
 				}
 			}
 			if (!ok) return 1;

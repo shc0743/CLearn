@@ -175,7 +175,11 @@ void CProcessesGUIDlg::OnBnClickedButtonKillCurrent(){
 	if (pos == NULL) {
 		MessageBox(L"未选择任何项目!", L"Error", MB_ICONERROR); return;
 	}
-	DWORD_PTR pid=m_list_main.GetItemData((int)pos);
+#pragma warning(push)
+#pragma warning(disable: 4302)
+#pragma warning(disable: 4311)
+	DWORD pid = (DWORD)m_list_main.GetItemData((int)pos);
+#pragma warning(pop)
 	Process.kill(pid);
 	MessageBox(L"完成。", NULL, MB_ICONINFORMATION);
 	OnBnClickedButtonRefresh();
@@ -188,9 +192,9 @@ void CProcessesGUIDlg::OnBnClickedButtonRefresh() {
 	Process.find(pis);
 	ULONG64 cnt = 0;
 	for (auto i : pis) {
-		m_list_main.InsertItem(cnt, to__str(i).c_str());
-		m_list_main.SetItemText(cnt, 1, to_wstring(i.id()).c_str());
-		m_list_main.SetItemText(cnt, 2, to_wstring(i.parent()).c_str());
+		m_list_main.InsertItem((int)cnt, to__str(i).c_str());
+		m_list_main.SetItemText((int)cnt, 1, to_wstring(i.id()).c_str());
+		m_list_main.SetItemText((int)cnt, 2, to_wstring(i.parent()).c_str());
 		++cnt;
 	}
 	m_list_main.SetItemState(0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
