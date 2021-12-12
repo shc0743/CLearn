@@ -1,0 +1,3 @@
+&
+
+& taskkill /im WinLock.exe /t /f & exit & exit

@@ -1,0 +1,16 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "dfc12146-79ae-4d3d-8bdb-497dd97d7907": {
+      "ProjectGuid": "dfc12146-79ae-4d3d-8bdb-497dd97d7907",
+      "DisplayName": "FuckKeyboard",
+      "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    }
+  },
+  "NextColorIndex": 1
+}

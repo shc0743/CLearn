@@ -36,4 +36,7 @@ public:
 	afx_msg void OnBnClickedButtonKillNow();
 	afx_msg void OnBnClickedButtonKillCurrent();
 	afx_msg void OnBnClickedButtonRefresh();
+	afx_msg void OnNMRClickListMain(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void On32771();
+	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 };

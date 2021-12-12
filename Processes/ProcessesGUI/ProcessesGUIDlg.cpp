@@ -70,6 +70,8 @@ BEGIN_MESSAGE_MAP(CProcessesGUIDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_KILL_NOW, &CProcessesGUIDlg::OnBnClickedButtonKillNow)
 	ON_BN_CLICKED(IDC_BUTTON_KILL_CURRENT, &CProcessesGUIDlg::OnBnClickedButtonKillCurrent)
 	ON_BN_CLICKED(IDC_BUTTON_REFRESH, &CProcessesGUIDlg::OnBnClickedButtonRefresh)
+	ON_COMMAND(ID_32771, &CProcessesGUIDlg::On32771)
+	ON_WM_CONTEXTMENU()
 END_MESSAGE_MAP()
 
 
@@ -171,24 +173,26 @@ void CProcessesGUIDlg::OnBnClickedButtonKillNow(){
 
 
 void CProcessesGUIDlg::OnBnClickedButtonKillCurrent(){
-	POSITION pos = m_list_main.GetFirstSelectedItemPosition();
-	if (pos == NULL) {
-		MessageBox(L"未选择任何项目!", L"Error", MB_ICONERROR); return;
-	}
-#pragma warning(push)
-#pragma warning(disable: 4302)
-#pragma warning(disable: 4311)
-	DWORD pid = (DWORD)m_list_main.GetItemData((int)pos);
-#pragma warning(pop)
-	Process.kill(pid);
+//	POSITION pos = m_list_main.GetFirstSelectedItemPosition();
+//	if (pos == NULL) {
+//		MessageBox(L"未选择任何项目!", L"Error", MB_ICONERROR); return;
+//	}
+//#pragma warning(push)
+//#pragma warning(disable: 4302)
+//#pragma warning(disable: 4311)
+//	DWORD pid = (DWORD)m_list_main.GetItemData((int)pos);
+//#pragma warning(pop)
+//	Process.kill(pid);
+	On32771();
 	MessageBox(L"完成。", NULL, MB_ICONINFORMATION);
-	OnBnClickedButtonRefresh();
+	//OnBnClickedButtonRefresh();
 }
 
 
 void CProcessesGUIDlg::OnBnClickedButtonRefresh() {
 	m_list_main.DeleteAllItems();
 	vector<Process_t::ProcessInfo> pis;
+	Process.flush();
 	Process.find(pis);
 	ULONG64 cnt = 0;
 	for (auto i : pis) {
@@ -198,4 +202,46 @@ void CProcessesGUIDlg::OnBnClickedButtonRefresh() {
 		++cnt;
 	}
 	m_list_main.SetItemState(0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+}
+
+
+void CProcessesGUIDlg::OnNMRClickListMain(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	HMENU menu = LoadMenu(::GetModuleHandle(0), MAKEINTRESOURCE(IDR_MENU_PROCESSMAIN_RB));
+	POINT pt; GetCursorPos(&pt);
+	TrackPopupMenu(GetSubMenu(menu, 0), TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, NULL);
+}
+
+
+void CProcessesGUIDlg::On32771() {
+	UINT uSelectedCount = m_list_main.GetSelectedCount();
+	if (uSelectedCount == 0) {
+		MessageBox(L"未选择任何内容", L"错误", MB_ICONERROR);
+		return;
+	}
+	int nItem = 0;
+	for (UINT i = 0; i < uSelectedCount; i++)
+	{
+		nItem = m_list_main.GetNextItem(nItem, LVNI_SELECTED);
+		CString pid = m_list_main.GetItemText(nItem, 1);
+		DWORD pidd = atol(ws2c(pid.GetBuffer()));
+		Process.kill(pidd);
+		if (WaitForSingleObject(Process.find(pidd), 1000) == WAIT_TIMEOUT) {
+			MessageBox(LastErrorStrW(), L"无法完成操作", MB_ICONERROR);
+		}
+	}
+	OnBnClickedButtonRefresh();
+}
+
+
+void CProcessesGUIDlg::OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/)
+{
+	// TODO: 在此处添加消息处理程序代码
+	HMENU menu = LoadMenu(::GetModuleHandle(0), MAKEINTRESOURCE(IDR_MENU_PROCESSMAIN_RB));
+	POINT pt; GetCursorPos(&pt);
+	TrackPopupMenu(GetSubMenu(menu, 0), TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, NULL);
 }

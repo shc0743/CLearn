@@ -1,0 +1,11 @@
+﻿  tool.cpp
+  The contents of <numbers> are available only with C++20 or later.
+  The contents of <source_location> are available only with C++20 consteval support.
+  The contents of <span> are available only with C++20 or later.
+D:\software\VisualStudio\source\repos\resource\tool.h(64,1): fatal error C1189: #error:  "The tool.h needs c++20 or later."
+  ProcessShower.cpp
+  The contents of <numbers> are available only with C++20 or later.
+  The contents of <source_location> are available only with C++20 consteval support.
+  The contents of <span> are available only with C++20 or later.
+D:\software\VisualStudio\source\repos\resource\tool.h(64,1): fatal error C1189: #error:  "The tool.h needs c++20 or later."
+  正在生成代码...

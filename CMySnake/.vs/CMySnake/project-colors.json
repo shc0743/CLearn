@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "0213a2f4-f9e2-46a7-bfd8-7fc7f9e4e4d5": {
+      "ProjectGuid": "0213a2f4-f9e2-46a7-bfd8-7fc7f9e4e4d5",
+      "DisplayName": "CMySnake_GUI",
+      "ColorIndex": 0
+    }
+  },
+  "NextColorIndex": 1
+}
