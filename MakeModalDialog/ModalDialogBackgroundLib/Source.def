@@ -1,0 +1,9 @@
+LIBRARY
+
+EXPORTS
+	main_RunDLL
+	CreateBackgroundWindow
+	CreateBackgroundWindowEx
+	WaitForWindow
+	MessageLoop
+	DestroyBackgroundWindow

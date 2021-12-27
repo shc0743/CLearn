@@ -1,0 +1,21 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "dc649c5b-f064-49ed-b5e6-7ea962346a91": {
+      "ProjectGuid": "dc649c5b-f064-49ed-b5e6-7ea962346a91",
+      "DisplayName": "ModalDialogBackground",
+      "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    },
+    "5620d721-1959-4031-942e-315db4880098": {
+      "ProjectGuid": "5620d721-1959-4031-942e-315db4880098",
+      "DisplayName": "ModalDialogBackgroundLib",
+      "ColorIndex": 1
+    }
+  },
+  "NextColorIndex": 2
+}
