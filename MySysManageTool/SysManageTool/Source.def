@@ -1,0 +1,15 @@
+LIBRARY
+
+EXPORTS
+	MLoadKernelDriver
+	MUnLoadKernelDriver
+	MUnLoadDriverServiceWithMessage
+	MOpenDriver
+
+	ReleaseDriver
+	InitKernelDriver
+	UnInitKernelDriver
+	
+	InstallDriverCert
+
+	ZwOpenProcess

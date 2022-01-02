@@ -1,0 +1,31 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "326da26a-3901-4ef0-8d05-c6a801d9fe40": {
+      "ProjectGuid": "326da26a-3901-4ef0-8d05-c6a801d9fe40",
+      "DisplayName": "SysManageUi",
+      "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    },
+    "0b46ca50-6daa-40db-b24c-3964183e554c": {
+      "ProjectGuid": "0b46ca50-6daa-40db-b24c-3964183e554c",
+      "DisplayName": "MySysManageTool",
+      "ColorIndex": 1
+    },
+    "a0f316a9-2cba-4159-b773-29308e524142": {
+      "ProjectGuid": "a0f316a9-2cba-4159-b773-29308e524142",
+      "DisplayName": "SysManageUi_UserMode",
+      "ColorIndex": 2
+    },
+    "8bf490de-6e7d-4b51-bd46-6a3d6669986c": {
+      "ProjectGuid": "8bf490de-6e7d-4b51-bd46-6a3d6669986c",
+      "DisplayName": "SysManageToolUi",
+      "ColorIndex": 3
+    }
+  },
+  "NextColorIndex": 4
+}

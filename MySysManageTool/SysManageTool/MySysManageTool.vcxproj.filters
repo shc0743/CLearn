@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{308846e0-5d2b-41d2-88f1-e356b38a4662}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{16f593b7-452d-4f7b-bd55-977508a4b126}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Header">
+      <UniqueIdentifier>{da58d9fa-9068-4524-a77d-1b0c199368f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Source">
+      <UniqueIdentifier>{29595269-ec04-441d-9197-fa598c05fc83}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DriverLoader.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>资源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="includer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RegHlp.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\file.h">
+      <Filter>src\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\process.h">
+      <Filter>src\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\reg.h">
+      <Filter>src\Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DriverLoader.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="RegHlp.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\file.cpp">
+      <Filter>src\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\reg.cpp">
+      <Filter>src\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\process.cpp">
+      <Filter>src\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\resource\tool.cpp">
+      <Filter>资源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source.def">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="..\SysManageDriver\bin\SysManageDriver32.sys">
+      <Filter>Utils</Filter>
+    </None>
+    <None Include="..\SysManageDriver\bin\SysManageDriver64.sys">
+      <Filter>Utils</Filter>
+    </None>
+    <None Include="..\SysManageDriver\bin\SysManageDriver64.cer" />
+  </ItemGroup>
+</Project>
