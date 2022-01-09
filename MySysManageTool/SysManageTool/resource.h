@@ -6,7 +6,10 @@
 #define IDR_BIN_KDRIVER_32              102
 #define IDS_STRING_APPUUID              103
 #define IDS_STRING_APPGUID              104
+#define IDS_STRING_DRV_DEFNAME          105
 #define IDR_BIN_KDRIVER_CERT            106
+#define IDS_STRING_DRV_DEFPATH          106
+#define IDS_STRING_DRV_DEFCERTPATH      107
 
 // Next default values for new objects
 // 

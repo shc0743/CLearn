@@ -9,6 +9,7 @@
 #include <VersionHelpers.h>
 //#include "Frame_MainWnd.h"
 #include "TaskbarIcon.h"
+#include "SimpleUI.h"
 using namespace std;
 
 
@@ -68,6 +69,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 
 	if (cl.getopt("user-exit")) {
+		Sleep(100);
 		WCHAR szWindowClass[37] = { 0 };
 		LoadStringW(ThisInst, IDS_STRING_UI_WNDCLASS, szWindowClass, 37);
 		HWND hMainWnd = FindWindowW(szWindowClass, NULL);
@@ -77,7 +79,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		EndTask_t EndTask = (EndTask_t)
 #pragma warning(pop)
 			GetProcAddress(GetModuleHandleA("user32.dll"), "EndTask");
-		while (hMainWnd = FindWindowW(L"e3574a77-9c26-470c-b57e-6e7bf09abddd", NULL))
+		WCHAR szSubWindowClass[37] = { 0 };
+		LoadStringW(ThisInst, IDS_STRING_UI_SUBWNDCLASS, szSubWindowClass, 37);
+		while (hMainWnd = FindWindowW(szSubWindowClass, NULL))
 			EndTask(hMainWnd, FALSE, TRUE);
 		return 0;
 	}
@@ -166,12 +170,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			return ERROR_ACCESS_DENIED;
 		}
 
+		if (cl.getopt("ui-command")) {
+			Frame_SimpleUI::LoadGlobalString(ThisInst);
+			AssertEx_AutoHandle(Frame_SimpleUI::MyRegisterClass());
+			Frame_SimpleUI ui;
+			if (ui.InitInstance(ThisInst, nCmdShow))
+				return ui.MessageLoop();
+			else {
+				fprintf(stderr, "[FATAL] %ld: %s\n", GetLastError(), LastErrorStrA());
+				if (nCmdShow) MessageBoxW(NULL, LastErrorStrW(), L"FATAL ERROR", 0x10L);
+				return GetLastError();
+			}
+		}
+
 		HANDLE hMutexSelfCheck = NULL; // Self Check
 		do { // Mutex checking
 			TCHAR szMutexName[256] = { 0 };
-			WCHAR szWindowClass[37] = { 0 };
+			WCHAR szSubWindowClass[37] = { 0 };
 			LoadString(ThisInst, IDS_STRING_UI_MUTEXNAME, szMutexName, 256);
-			LoadStringW(ThisInst, IDS_STRING_UI_WNDCLASS, szWindowClass, 37);
+			LoadStringW(ThisInst, IDS_STRING_UI_SUBWNDCLASS, szSubWindowClass, 37);
 			wcscat_s(szMutexName, (L"-user-" + cppGetUserNameW()).c_str());
 			//BeginMutexCheck:
 			HANDLE hMutexCheck = NULL;
@@ -185,9 +202,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				CloseHandle(hMutexCheck);
 				printf("[WARN] Program is already running!\n");
 				if (nCmdShow == 0) return 0;
-				//HWND hMainWnd = FindWindowW(szWindowClass, NULL);
+				//HWND hMainWnd = FindWindowW(szSubWindowClass, NULL);
 
-				HWND hMainWnd = FindWindowW(L"e3574a77-9c26-470c-b57e-6e7bf09abddd", NULL);
+				HWND hMainWnd = FindWindowW(szSubWindowClass, NULL);
 				if (hMainWnd) { ShowWindow(hMainWnd, 9); SetForegroundWindow(hMainWnd); }
 				else RunUIProcess();
 				return 0;
@@ -206,7 +223,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				}
 #endif
 			} else {
-				hMutexSelfCheck = (CreateMutex(0, 0, szMutexName));
+				hMutexSelfCheck = CreateMutex(0, 0, szMutexName);
 			}
 		} while (0);
 
@@ -256,7 +273,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			SendMessage(hMainWnd, WM_USER + 4, 0, 0); // DestroyWindow
 			WaitForSingleObject(hthrd_MessageLoop, MAXDWORD);
 #endif
-			CloseHandle(hthrd_MessageLoop);
+			([](HANDLE h) {__try { CloseHandle(h); }
+			__except (EXCEPTION_EXECUTE_HANDLER) {}})(hthrd_MessageLoop);
 		}
 
 		Sleep(1/*2333*/);
@@ -312,11 +330,6 @@ void RunUIProcess(){
 		HANDLE hObjects[1] = { pi.hProcess };
 		hGuiSubProcess = pi.hProcess;
 		Process.resume(pi.hProcess);
-		//WaitForMultipleObjects(1, hObjects, FALSE, MAXDWORD);
-		//GetExitCodeProcess(pi.hProcess, &dwRetValue);
-		//hGuiSubProcess = NULL;
-		//([](HANDLE h) {__try { TerminateProcess(h, 0); }
-		//__except (EXCEPTION_EXECUTE_HANDLER) {}})(pi.hProcess);
 		([](HANDLE h) {__try { CloseHandle(h); }
 		__except (EXCEPTION_EXECUTE_HANDLER) {}})(pi.hProcess);
 	

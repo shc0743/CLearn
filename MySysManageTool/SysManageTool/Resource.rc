@@ -13,9 +13,9 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 中文(简体，中国) resources
+// 非特定语言(默认值) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 #pragma code_page(936)
 
@@ -105,9 +105,11 @@ STRINGTABLE
 BEGIN
     IDS_STRING_APPUUID      "a8c98f03-a1a8-4637-8ff2-49989fd7dc5f"
     IDS_STRING_APPGUID      "{F16D9C09-DFD5-4D83-A749-B856C96D0A65}"
+    IDS_STRING_DRV_DEFNAME  "MySysManageDrv_mbQ6o6vh"
+    IDS_STRING_DRV_DEFPATH  ".\\MySysManageDrv_mbQ6o6vh.sys"
 END
 
-#endif    //  resources
+#endif    // 非特定语言(默认值) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

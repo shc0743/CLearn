@@ -28,7 +28,9 @@ namespace DownloadToolUi_NET
         private void OnWebBrowserLocationChanged(object sender, EventArgs e)
         {
             if (textBox_url.Focused) return;
-            textBox_url.Text = webBrowser_main.Url.ToString();
+            try {
+                textBox_url.Text = webBrowser_main.Url.ToString();
+            } catch { };
         }
 
         private void OnResize(object sender, EventArgs e)

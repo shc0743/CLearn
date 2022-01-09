@@ -110,6 +110,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>..\Debug\</OutDir>
+    <IntDir>..\out\$(ProjectName)-$(Platform)$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_$(Platform)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -173,6 +176,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -220,6 +225,7 @@
     <ClInclude Include="includer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ServiceWorker.h" />
+    <ClInclude Include="SimpleUI.h" />
     <ClInclude Include="SysManageUi_UserMode.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TaskbarIcon.h" />
@@ -227,6 +233,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\resource\tool.cpp" />
     <ClCompile Include="ServiceWorker.cpp" />
+    <ClCompile Include="SimpleUI.cpp" />
     <ClCompile Include="SysManageUi_UserMode-2.cpp" />
     <ClCompile Include="TaskbarIcon.cpp" />
   </ItemGroup>

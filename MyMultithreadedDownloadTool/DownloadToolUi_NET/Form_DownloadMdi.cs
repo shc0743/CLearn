@@ -47,5 +47,11 @@ namespace DownloadToolUi_NET
             form_SimpleWebBrowser.MdiParent = this;
             form_SimpleWebBrowser.Show();
         }
+
+        private void simpleWebBrowserNewWindowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form_SimpleWebBrowser form_SimpleWebBrowser = new Form_SimpleWebBrowser();
+            form_SimpleWebBrowser.Show();
+        }
     }
 }

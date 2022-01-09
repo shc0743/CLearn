@@ -13,6 +13,9 @@
     <ClCompile Include="TaskbarIcon.cpp">
       <Filter>ui</Filter>
     </ClCompile>
+    <ClCompile Include="SimpleUI.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -34,6 +37,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="TaskbarIcon.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleUI.h">
       <Filter>ui</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,25 +4,25 @@
 using namespace std;
 
 // Create a download task
-DownloadTaskID CreateDownloadTask(const char* url);
-DownloadTaskID CreateDownloadTaskW(const wchar_t* url);
-DownloadTaskID CreateDownloadTaskExW(const PDOWNLOADINFOW info);
+DownloadTaskID WINAPI CreateDownloadTask(const char* url);
+DownloadTaskID WINAPI CreateDownloadTaskW(const wchar_t* url);
+DownloadTaskID WINAPI CreateDownloadTaskExW(const PDOWNLOADINFOW info);
 
 // Start a download task
-bool BeginDownloadTask(DownloadTaskID task);
+bool WINAPI BeginDownloadTask(DownloadTaskID task);
 
 // Control a download task
-bool PauseDownloadTask(DownloadTaskID task);
-bool ResumeDownloadTask(DownloadTaskID task);
+bool WINAPI PauseDownloadTask(DownloadTaskID task);
+bool WINAPI ResumeDownloadTask(DownloadTaskID task);
 
 // Query download progress
-DownloadStatus QueryDownloadTaskStat(DownloadTaskID task);
+DownloadStatus WINAPI QueryDownloadTaskStat(DownloadTaskID task);
 
 // Cancel a download task
-bool CancelDownloadTask(DownloadTaskID task);
+bool WINAPI CancelDownloadTask(DownloadTaskID task);
 
 // Terminate a download task
-NTSTATUS TerminateDownloadTask(DownloadTaskID task);
+NTSTATUS WINAPI TerminateDownloadTask(DownloadTaskID task);
 
 
 // download core components
@@ -37,5 +37,5 @@ DWORD __stdcall thrd_Downloading(void*);
 
 
 // App.Config
-const AppConfig_t* GetCurrentDownloadConfig();
-void ConfigDownload(const AppConfig_t*);
+const AppConfig_t* WINAPI GetCurrentDownloadConfig();
+void WINAPI ConfigDownload(const AppConfig_t*);

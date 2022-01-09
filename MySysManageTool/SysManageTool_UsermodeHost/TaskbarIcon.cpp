@@ -2,17 +2,13 @@
 #include "resource.h"
 using namespace std;
 
-WCHAR szWindowClass[37] = { 0 };
-WCHAR szTitle[256] = { 0 };
+static WCHAR szWindowClass[37] = { 0 };
+static WCHAR szTitle[256] = { 0 };
 static std::map<HWND, Frame_Icon*> HwndAndObjBridge;
 static Frame_Icon* _tempvar_pFrame_MainWnd;
 LRESULT NCHITTESTER(HWND hWnd, LPARAM lParam);
 void RunUIProcess();
-#ifdef UNICODE
-#define tstrcat_s wcscat_s
-#else
-#define tstrcat_s strcat_s
-#endif
+#define ThisInst (GetModuleHandle(NULL))
 
 Frame_Icon::Frame_Icon() {
 	hWnd = wBtn1 = wStatic1 = NULL;
@@ -123,13 +119,18 @@ LRESULT Frame_Icon::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 	case (WM_USER+13):
 		if (lParam == WM_LBUTTONUP || lParam == WM_LBUTTONDBLCLK) {
-			HWND hMainWnd = FindWindowW(L"e3574a77-9c26-470c-b57e-6e7bf09abddd", NULL);
+#if 1
+			WCHAR szSubWindowClass[37] = { 0 };
+			LoadStringW(ThisInst, IDS_STRING_UI_SUBWNDCLASS, szSubWindowClass, 37);
+			HWND hMainWnd = FindWindowW(szSubWindowClass, NULL);
 			if (hMainWnd) {
 				ShowWindow(hMainWnd, 9);
 				SetForegroundWindow(hMainWnd);
 			}
 			else RunUIProcess();
-			//ShowWindow(hWnd, SW_RESTORE); SetForegroundWindow(hWnd);
+#else
+			ShowWindow(hWnd, SW_RESTORE); SetForegroundWindow(hWnd);
+#endif
 			break;
 		}
 		if (lParam == WM_RBUTTONUP) {
@@ -168,6 +169,7 @@ LRESULT Frame_Icon::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				Shell_NotifyIcon(NIM_DELETE, HwndAndObjBridge[hWnd]->pnid);
 				free(HwndAndObjBridge[hWnd]->pnid);
 				HwndAndObjBridge[hWnd]->pnid = NULL;
+				ShowWindow(hWnd, SW_RESTORE);
 			}
 			break;
 		}

@@ -6,8 +6,8 @@ using namespace std;
 
 HINSTANCE hInst;
 static HANDLE hKdDrv = NULL;
-static LPCWSTR szDrvName = L"MySysManageDrv_mbQ6o6vh";
-static LPCWSTR szDrvPath = L".\\MySysManageDrv_mbQ6o6vh.sys";
+static LPWSTR szDrvName = NULL;
+static LPWSTR szDrvPath = NULL;
 #ifdef _WIN64
 #define IDR_KDRIVER_CURRENT IDR_BIN_KDRIVER_64
 #else
@@ -26,6 +26,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	{
 	case DLL_PROCESS_ATTACH:
 		::hInst = hModule;
+		szDrvName = (LPWSTR)calloc(64, sizeof(wchar_t));
+		szDrvPath = (LPWSTR)calloc(64, sizeof(wchar_t));
+		if (szDrvName && szDrvPath) {
+			LoadStringW(hInst, IDS_STRING_DRV_DEFNAME, szDrvName, 64);
+			LoadStringW(hInst, IDS_STRING_DRV_DEFPATH, szDrvPath, 64);
+		} else return FALSE;
 		break;
 	case DLL_THREAD_ATTACH:
 		break;
@@ -33,7 +39,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		break;
 	case DLL_PROCESS_DETACH:
 		if (hKdDrv) UnInitKernelDriver();
-		if (file_exists(szDrvPath)) DeleteFileW(szDrvPath);
+		if (szDrvPath && file_exists(szDrvPath)) DeleteFileW(szDrvPath);
+		if (szDrvName) free(szDrvName);
+		if (szDrvPath) free(szDrvPath);
 		break;
 	}
 	return TRUE;
@@ -41,13 +49,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 
 bool InitKernelDriver() {
-	if (!file_exists(szDrvPath)) ReleaseDriver(0);
+	if (!file_exists(szDrvPath)) ReleaseDriver(NULL);
 	//ServiceManager.Remove(ws2s(szDrvName));
 	WCHAR szDrvFullPath[MAX_PATH + 1] = { 0 };
 	GetFullPathNameW(szDrvPath, MAX_PATH, szDrvFullPath, NULL);
-	//MessageBoxW(NULL, szDrvFullPath, szDrvPath, 0);
 	if (!MLoadKernelDriver(szDrvName, szDrvFullPath, nullptr)) {
-		//MessageBoxW(NULL, LastErrorStrW(), L"", 0);
+		MessageBoxW(NULL, LastErrorStrW(), L"", 0);
 		ServiceManager.Remove(ws2s(szDrvName));
 		return false;
 	}

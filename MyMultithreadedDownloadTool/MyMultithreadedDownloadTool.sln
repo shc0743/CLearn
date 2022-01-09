@@ -6,10 +6,16 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MultithreadedDownloadTool", "MultithreadedDownloadTool\MultithreadedDownloadTool.vcxproj", "{74A7FE45-60D6-4587-8508-5824A801930E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "download_client", "download_client\download_client.vcxproj", "{F05CA92B-5086-4364-8C61-2D3179738C46}"
+	ProjectSection(ProjectDependencies) = postProject
+		{74A7FE45-60D6-4587-8508-5824A801930E} = {74A7FE45-60D6-4587-8508-5824A801930E}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadToolUi_NET", "DownloadToolUi_NET\DownloadToolUi_NET.csproj", "{91EF0188-6890-424C-8E4E-747A9BBB3A17}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "downloadclientdemo1", "downloadclientdemo1\downloadclientdemo1.vcxproj", "{FDA2521C-0064-48FD-8CA8-05978BB79A87}"
+	ProjectSection(ProjectDependencies) = postProject
+		{74A7FE45-60D6-4587-8508-5824A801930E} = {74A7FE45-60D6-4587-8508-5824A801930E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

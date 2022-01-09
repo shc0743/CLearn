@@ -30,19 +30,29 @@ typedef struct {
 
 // Exports
 #ifndef _BUILD_INTERNAL
-__declspec(dllimport) DownloadTaskID CreateDownloadTask(const char* url);
-__declspec(dllimport) DownloadTaskID CreateDownloadTaskW(const wchar_t* url);
-__declspec(dllimport) DownloadTaskID CreateDownloadTaskExW(const PDOWNLOADINFOW info);
-__declspec(dllimport) bool BeginDownloadTask(DownloadTaskID task);
-__declspec(dllimport) bool PauseDownloadTask(DownloadTaskID task);
-__declspec(dllimport) bool ResumeDownloadTask(DownloadTaskID task);
-__declspec(dllimport) DownloadStatus QueryDownloadTaskStat(DownloadTaskID task);
-__declspec(dllimport) bool CancelDownloadTask(DownloadTaskID task);
-__declspec(dllimport) NTSTATUS TerminateDownloadTask(DownloadTaskID task);
-__declspec(dllimport) const AppConfig_t* GetCurrentDownloadConfig();
-__declspec(dllimport) void ConfigDownload(const AppConfig_t*);
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
+__declspec(dllimport) DownloadTaskID WINAPI CreateDownloadTask(const char* url);
+__declspec(dllimport) DownloadTaskID WINAPI CreateDownloadTaskW(const wchar_t* url);
+__declspec(dllimport) DownloadTaskID WINAPI
+	CreateDownloadTaskExW(const PDOWNLOADINFOW info);
+__declspec(dllimport) bool WINAPI BeginDownloadTask(DownloadTaskID task);
+__declspec(dllimport) bool WINAPI PauseDownloadTask(DownloadTaskID task);
+__declspec(dllimport) bool WINAPI ResumeDownloadTask(DownloadTaskID task);
+__declspec(dllimport) DownloadStatus WINAPI QueryDownloadTaskStat(DownloadTaskID task);
+__declspec(dllimport) bool WINAPI CancelDownloadTask(DownloadTaskID task);
+__declspec(dllimport) NTSTATUS WINAPI TerminateDownloadTask(DownloadTaskID task);
+__declspec(dllimport) const AppConfig_t* WINAPI GetCurrentDownloadConfig();
+__declspec(dllimport) void WINAPI ConfigDownload(const AppConfig_t*);
 
+//#ifdef __cplusplus
+//}
+//#endif
 #endif
+
+
+
 
 
 

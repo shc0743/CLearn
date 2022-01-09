@@ -56,10 +56,11 @@ bool PauseDownloadTask(DownloadTaskID task) {
 		(task->dlThrds[i], AppConfig.DownloadCancelMaxWaitTime)) bOk = false;
 		else {
 			::CloseHandle(task->dlThrds[i]);
+			task->dlThrds[i] = NULL;
 			rm_pos.push_back(i);
 		}
 	}
-	for (size_t i = rm_pos.size() - 1; i >= 0; --i) {
+	for (long long i = rm_pos.size() - 1; i >= 0; --i) {
 		task->dlThrds.erase(task->dlThrds.begin() + rm_pos[i]);
 	}
 	return bOk;
@@ -70,23 +71,40 @@ bool ResumeDownloadTask(DownloadTaskID task) {
 }
 
 DownloadStatus QueryDownloadTaskStat(DownloadTaskID task) {
-	return DownloadStatus();
+	return task->status;
 }
 
 DownloadTask::~DownloadTask() {
 	if (!dlThrds.empty()) {
 		this->DeleteFlag = true;
-		for (auto i : dlThrds) {
+		for (auto& i : dlThrds) {
 			if (WaitForSingleObject(i,
 				AppConfig.DownloadCancelMaxWaitTime) == WAIT_TIMEOUT) {
 				::TerminateThread(i, 1);
 			}
+			::CloseHandle(i);
+			i = NULL;
 		}
 	}
 }
 
 bool CancelDownloadTask(DownloadTaskID task) {
-	return false;
+	task->DeleteFlag = true;
+	bool bOk = true; vector<size_t> rm_pos;
+	rm_pos.reserve(task->dlThrds.size());
+	for (size_t i = 0; i < task->dlThrds.size();++i) {
+		if (WAIT_TIMEOUT == ::WaitForSingleObject
+		(task->dlThrds[i], AppConfig.DownloadCancelMaxWaitTime)) bOk = false;
+		else {
+			::CloseHandle(task->dlThrds[i]);
+			task->dlThrds[i] = NULL;
+			rm_pos.push_back(i);
+		}
+	}
+	for (long long i = rm_pos.size() - 1; i >= 0; --i) {
+		task->dlThrds.erase(task->dlThrds.begin() + rm_pos[i]);
+	}
+	return bOk;
 }
 
 NTSTATUS TerminateDownloadTask(DownloadTaskID task) {
