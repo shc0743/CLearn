@@ -1,0 +1,1 @@
+MyProcessControl_UsermodeHost_x64 --svc-options --install-service --svc-name=MyProcessControl_UsermodeHost --config=./cfg1-test.cfg --display-name="My Process Execution Control Usermode Service"

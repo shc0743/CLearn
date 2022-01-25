@@ -1,0 +1,16 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "eed8cd1e-fb35-4a8f-aa45-3a2750e7d7ce": {
+      "ProjectGuid": "eed8cd1e-fb35-4a8f-aa45-3a2750e7d7ce",
+      "DisplayName": "MyProcessControl_UsermodeHost",
+      "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    }
+  },
+  "NextColorIndex": 1
+}

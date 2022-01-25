@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<!-- 
+A example config file
+* Note: Remember to modify it!
+-->
+<document>
+	
+	<app_config xmlns:app="MyProcessControl_"><!-- Must-have -->
+		<meta name="no-parse-this-config" value="true" reason="Delete this line!" />
+		<service><!-- Must-have -->
+			<!--
+			<meta name="service_name" value="Service1_mytest" />
+			-->
+			<config><!-- Must-have -->
+				<cfg startable="true" />
+				<cfg stoppable="true" />
+				<cfg pausable="true" />
+				<cfg logfile="svc_11.log" />
+			</config>
+			<security><!-- Must-have -->
+				<cfg enabled="false">
+					<name>users_can_pause_or_stop</name>
+					<!--default: Everyone-->
+					<value type="list">
+						<value>SYSTEM</value>
+						<value>Administrator</value>
+					</value>
+				</cfg>
+				<cfg enabled="true" name="pause_needs_confirm" value="true" />
+				<!--default: false-->
+				<cfg enabled="true" name="lock_config_file" value="true" />
+				<!--default: false-->
+				<cfg enabled="true" name="self_protection" value="true" />
+				<!--default: false-->
+			</security>
+		</service>
+
+		<rules name="root"><!-- Must-have -->
+			
+			<rules name="demo_rule_group1">
+				<rule name="demorule1">
+					<target>C:\Windows\System32\cmd.exe</target>
+					<object type="file" action="open;read" option="block">C:\Windows\System32\ntoskrnl.exe</object>
+					<object type="file" action="open;read" option="allow">C:\Windows\System32\test1.log</object>
+					<object type="file" action="write;delete;move" option="ask">C:\Windows\System32\test1.log</object>
+				</rule>
+			</rules>
+			
+			<rule name="demorule2">
+				<target>*</target>
+				<object type="key" action="write" option="ask" distance="all">HKLM\Software\microsoft\Windows NT\CurrentVersion\Winlogon</object>
+			</rule>
+
+		</rules>	
+	</app_config>
+
+</document>
