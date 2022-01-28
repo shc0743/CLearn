@@ -4,6 +4,8 @@
 #include "../../resource/tool.h"
 #include "svcmain.h"
 #include "resload.h"
+#include "../utils/inject.h"
+#include "../utils/psprotect.h"
 #include <WtsApi32.h>
 #pragma comment(lib, "wtsapi32.lib")
 using namespace std;
@@ -123,107 +125,33 @@ void WINAPI ServiceWorker_c::ServiceHandler(DWORD fdwControl)
 		break;
 	}
 	case SERVICE_CONTROL_STOP: {
-			//auto& ss = global_SvcObj->ServiceStatus;
-			//ss.dwWin32ExitCode = ERROR_ACCESS_DENIED;
-			//ss.dwCheckPoint = 0;
-			//ss.dwWaitHint = 0;
-			//break;
-		auto last_stat = global_SvcObj->ServiceStatus.dwCurrentState;
+		global_SvcObj->last_stat = global_SvcObj->ServiceStatus.dwCurrentState;
+		HANDLE hThr = CreateThread(0, 0, StoppingThrd, global_SvcObj, 0, 0);
+		if (hThr) CloseHandle(hThr);
+
 		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
 		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
 		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
 		global_SvcObj->ServiceStatus.dwWaitHint = 16384;
-		SetServiceStatus(global_SvcObj->hServiceStatusHandle,
-			&global_SvcObj->ServiceStatus);
 
-		if (global_SvcObj->pause_needs_confirm)
-		if (!PauseOrStopConfirm("exit")) {
-			global_SvcObj->ServiceStatus.dwCheckPoint++;
-			//SERVICE_STATUS ss; AutoZeroMemory(ss);
-			//memcpy(&ss, &global_SvcObj->ServiceStatus, sizeof(SERVICE_STATUS));
-			auto& ss = global_SvcObj->ServiceStatus;
-			ss.dwWin32ExitCode = ERROR_ACCESS_DENIED;
-			ss.dwCurrentState = last_stat;
-			ss.dwCheckPoint = 0;
-			ss.dwWaitHint = 0;
-			SetServiceStatus(global_SvcObj->hServiceStatusHandle, &ss);
-#if defined(_DEBUG) && 0
-			SvcShowMessage((LPWSTR)to_wstring(ss.dwWin32ExitCode).c_str(),
-				(LPWSTR)L"Debug", MB_ICONINFORMATION, 3000);
-#endif
-			//memcpy(&global_SvcObj->ServiceStatus, &ss, sizeof(SERVICE_STATUS));
-			return;
-		}
-#if 0
-		if (global_SvcObj->pause_needs_confirm) do {
-			if (PauseOrStopConfirm("exit")) break;
-			global_SvcObj->ServiceStatus.dwWin32ExitCode = ERROR_ACCESS_DENIED;
-			global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_RUNNING;
-			global_SvcObj->ServiceStatus.dwCheckPoint = 0;
-			global_SvcObj->ServiceStatus.dwWaitHint = 0;
-			//auto _oldAcceptControl = global_SvcObj->ServiceStatus.dwControlsAccepted;
-			//global_SvcObj->ServiceStatus.dwControlsAccepted = 0;
-			SetServiceStatus(global_SvcObj->hServiceStatusHandle,
-				&global_SvcObj->ServiceStatus);
-			//global_SvcObj->ServiceStatus.dwControlsAccepted = _oldAcceptControl;
-			//SetServiceStatus(global_SvcObj->hServiceStatusHandle,
-			//	&global_SvcObj->ServiceStatus);
-			return;
-		} while (0);
-#endif
-		//ok:
-		global_SvcObj->ServiceStatus.dwCheckPoint++;
-		// Stopping clean
-		SetLastError(0);
-#pragma warning(push)
-#pragma warning(disable: 6258)
-		::TerminateThread(global_SvcObj->svcmainthread_handle, 0);
-		global_SvcObj->exit = true;
-		global_SvcObj->ServiceStatus.dwCheckPoint++;
-		if (global_SvcObj->cfgfilelk) 
-			[]() {	__try { CloseHandle(global_SvcObj->cfgfilelk); }
-					__except (EXCEPTION_EXECUTE_HANDLER) {} }();
-		global_SvcObj->ServiceStatus.dwCheckPoint++;
-
-#pragma warning(pop)
-		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
-
-		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
-		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_STOPPED;
-		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
-		global_SvcObj->ServiceStatus.dwWaitHint = 0;
 		break;
 	}
 	case SERVICE_CONTROL_PAUSE: {
+		global_SvcObj->last_stat = global_SvcObj->ServiceStatus.dwCurrentState;
+		HANDLE hThr = CreateThread(0, 0, PausingThrd, global_SvcObj, 0, 0);
+		if (hThr) CloseHandle(hThr);
+
 		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
 		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_PAUSE_PENDING;
 		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
 		global_SvcObj->ServiceStatus.dwWaitHint = 16384;
 		SetServiceStatus(global_SvcObj->hServiceStatusHandle,
 			&global_SvcObj->ServiceStatus);
-		if (global_SvcObj->pause_needs_confirm) do {
-			if (PauseOrStopConfirm("pause")) break;
-			global_SvcObj->ServiceStatus.dwWin32ExitCode = ERROR_ACCESS_DENIED;
-			global_SvcObj->ServiceStatus.dwWin32ExitCode = 5;
-			global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_RUNNING;
-			global_SvcObj->ServiceStatus.dwCheckPoint = 0;
-			global_SvcObj->ServiceStatus.dwWaitHint = 0;
-			SetServiceStatus(global_SvcObj->hServiceStatusHandle,
-				&global_SvcObj->ServiceStatus);
-			return;
-		} while (0);
-		SuspendThread(global_SvcObj->svcmainthread_handle);
-		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
-		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_PAUSED;
-		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
-		global_SvcObj->ServiceStatus.dwWaitHint = 0;
-		//if (global_SvcObj->stoppable && global_SvcObj->pause_needs_confirm)
-		//	global_SvcObj->ServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
 		break;
 	}
 	case SERVICE_CONTROL_CONTINUE: {
-		//if (global_SvcObj->pause_needs_confirm)
-		//	global_SvcObj->ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
+		if (global_SvcObj->pause_needs_confirm)
+			global_SvcObj->ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
 		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
 		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_RUNNING;
 		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
@@ -262,7 +190,7 @@ void WINAPI ServiceWorker_c::ServiceLaunch_main(DWORD, LPWSTR*) {
 	//add your service thread here
 
 	global_SvcObj->svcmainthread_handle = 
-		(HANDLE)::_beginthread(srv_core_thread, 0, global_SvcObj);
+		(HANDLE)::_beginthread((_beginthread_proc_type)srv_core_thread, 0, global_SvcObj);
 	global_SvcObj->ServiceStatus.dwCheckPoint++;
 
 	// Initialization complete - report running status 
@@ -395,10 +323,11 @@ DWORD __stdcall ServiceWorker_c::thPipeServer(PVOID obj) {
 }
 #endif
 
-void WINAPI ServiceWorker_c::srv_core_thread(LPVOID obj) {
+void __cdecl ServiceWorker_c::srv_core_thread(LPVOID obj) {
 	EnableDebugPrivilege();
 
 	global_SvcObj->parseConfig();
+	global_SvcObj->applyConfig();
 
 	while (1) Sleep(MAXDWORD);
 
@@ -434,6 +363,8 @@ void __stdcall ServiceWorker_c::parseConfig() {
 	global_SvcObj->ServiceStatus.dwCheckPoint = 0;
 	global_SvcObj->ServiceStatus.dwWaitHint = 32767;
 	SetServiceStatus(global_SvcObj->hServiceStatusHandle, &global_SvcObj->ServiceStatus);
+
+	SetCurrentDirectoryW(s2wc(cfg_path.substr(0, cfg_path.find_last_of("\\") + 1)));
 
 	XMLElement* root = xld.RootElement(); assp(root);
 	XMLElement* app_config = root->FirstChildElement("app_config"); assp(app_config);
@@ -472,26 +403,28 @@ void __stdcall ServiceWorker_c::parseConfig() {
 			}
 			if (tistrequ(cfgitem->Attribute("pausable"), "false")) global_SvcObj->
 				ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_PAUSE_CONTINUE;
-			// TODO: logfile
+			if (cfgitem->Attribute("logfile")) {
+				log.open(cfgitem->Attribute("logfile"), ios::app | ios::binary);
+			}
 		} while (cfgitem = cfgitem->NextSiblingElement());
 		global_SvcObj->ServiceStatus.dwCheckPoint++;
 
 		XMLElement* secitem = svcsec->FirstChildElement("cfg");
 		if (secitem) do {
-			if (tistrequ(secitem->Attribute("enabled"), "false")) continue;
+			if (secitem->BoolAttribute("enabled", true) == false) continue;
 			if (tistrequ(secitem->Attribute("name"), "pause_needs_confirm") &&
-				tistrequ(secitem->Attribute("value"), "true")) {
+				secitem->BoolAttribute("value", false)) {
 				global_SvcObj->pause_needs_confirm = true;
-				//global_SvcObj->ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
+				global_SvcObj->ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
 			}
 			if (tistrequ(secitem->Attribute("name"), "lock_config_file") &&
-				tistrequ(secitem->Attribute("value"), "true")) {
+				secitem->BoolAttribute("value", false)) {
 				cfgfilelk = CreateFileW(s2wc(cfg_path), FILE_ALL_ACCESS, 0, 0,
 					OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 			}
 			if (tistrequ(secitem->Attribute("name"), "self_protection") &&
-				tistrequ(secitem->Attribute("value"), "true")) {
-
+				secitem->BoolAttribute("value", false)) {
+				ProtectProcessAndThread(GetCurrentProcess());
 			}
 
 		} while (secitem = secitem->NextSiblingElement());
@@ -518,6 +451,98 @@ void __stdcall ServiceWorker_c::parseConfig() {
 	SetServiceStatus(global_SvcObj->hServiceStatusHandle, &global_SvcObj->ServiceStatus);
 }
 
+void __stdcall ServiceWorker_c::applyConfig() {
+
+}
+
+DWORD __stdcall ServiceWorker_c::StoppingThrd(PVOID pobj) {
+	ServiceWorker_c& o = *((ServiceWorker_c*)pobj);
+	if (global_SvcObj->pause_needs_confirm && false)
+		if (!PauseOrStopConfirm("exit")) {
+			global_SvcObj->ServiceStatus.dwCheckPoint++;
+			//SERVICE_STATUS ss; AutoZeroMemory(ss);
+			//memcpy(&ss, &global_SvcObj->ServiceStatus, sizeof(SERVICE_STATUS));
+			auto& ss = global_SvcObj->ServiceStatus;
+			ss.dwWin32ExitCode = ERROR_ACCESS_DENIED/*NO_ERROR*/;
+			ss.dwCurrentState = o.last_stat;
+			ss.dwCheckPoint = 0;
+			ss.dwWaitHint = 0;
+			SetServiceStatus(global_SvcObj->hServiceStatusHandle, &ss);
+#if defined(_DEBUG) && 0
+			SvcShowMessage((LPWSTR)to_wstring(ss.dwWin32ExitCode).c_str(),
+				(LPWSTR)L"Debug", MB_ICONINFORMATION, 3000);
+#endif
+			//memcpy(&global_SvcObj->ServiceStatus, &ss, sizeof(SERVICE_STATUS));
+			return 1;
+		}
+#if 0
+	if (global_SvcObj->pause_needs_confirm) do {
+		if (PauseOrStopConfirm("exit")) break;
+		global_SvcObj->ServiceStatus.dwWin32ExitCode = ERROR_ACCESS_DENIED;
+		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_RUNNING;
+		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
+		global_SvcObj->ServiceStatus.dwWaitHint = 0;
+		//auto _oldAcceptControl = global_SvcObj->ServiceStatus.dwControlsAccepted;
+		//global_SvcObj->ServiceStatus.dwControlsAccepted = 0;
+		SetServiceStatus(global_SvcObj->hServiceStatusHandle,
+			&global_SvcObj->ServiceStatus);
+		//global_SvcObj->ServiceStatus.dwControlsAccepted = _oldAcceptControl;
+		//SetServiceStatus(global_SvcObj->hServiceStatusHandle,
+		//	&global_SvcObj->ServiceStatus);
+		return;
+	} while (0);
+#endif
+	//ok:
+	global_SvcObj->ServiceStatus.dwCheckPoint++;
+	// Stopping clean
+	SetLastError(0);
+#pragma warning(push)
+#pragma warning(disable: 6258)
+	::TerminateThread(global_SvcObj->svcmainthread_handle, 0);
+	global_SvcObj->exit = true;
+	global_SvcObj->ServiceStatus.dwCheckPoint++;
+	if (global_SvcObj->cfgfilelk)
+		[]() {	__try { CloseHandle(global_SvcObj->cfgfilelk); }
+	__except (EXCEPTION_EXECUTE_HANDLER) {} }();
+	global_SvcObj->log.close();
+	global_SvcObj->ServiceStatus.dwCheckPoint++;
+
+#pragma warning(pop)
+
+	global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
+	global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_STOPPED;
+	global_SvcObj->ServiceStatus.dwCheckPoint = 0;
+	global_SvcObj->ServiceStatus.dwWaitHint = 0;
+
+	SetServiceStatus(o.hServiceStatusHandle, &o.ServiceStatus);
+
+
+	ExitProcess(0);
+	return 0;
+}
+
+DWORD __stdcall ServiceWorker_c::PausingThrd(PVOID) {
+	if (global_SvcObj->pause_needs_confirm) if (!PauseOrStopConfirm("pause")) {
+		global_SvcObj->ServiceStatus.dwWin32ExitCode = ERROR_ACCESS_DENIED;
+		global_SvcObj->ServiceStatus.dwCurrentState = global_SvcObj->last_stat;
+		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
+		global_SvcObj->ServiceStatus.dwWaitHint = 0;
+		SetServiceStatus(global_SvcObj->hServiceStatusHandle,
+			&global_SvcObj->ServiceStatus);
+		return 1;
+	}
+	SuspendThread(global_SvcObj->svcmainthread_handle);
+	global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
+	global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_PAUSED;
+	global_SvcObj->ServiceStatus.dwCheckPoint = 0;
+	global_SvcObj->ServiceStatus.dwWaitHint = 0;
+	if (global_SvcObj->stoppable && global_SvcObj->pause_needs_confirm)
+		global_SvcObj->ServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
+
+	SetServiceStatus(global_SvcObj->hServiceStatusHandle, &global_SvcObj->ServiceStatus);
+	return 0;
+}
+
 void ServiceWorker_c::_findrules(tinyxml2::XMLElement* el) {
 	if (!el) return ;
 	using namespace tinyxml2;
@@ -534,6 +559,10 @@ void ServiceWorker_c::_findrules(tinyxml2::XMLElement* el) {
 		return;
 	}
 	if (!tistrequ(el->Name(), "rule")) return /*87*/;
+	if (el->BoolAttribute("enabled", true) == false/*Not enabled*/) return;
+
+	// ππ‘Ï mpc_rule
+	mpc_rule_t r; AutoZeroMemory(r);
 
 }
 

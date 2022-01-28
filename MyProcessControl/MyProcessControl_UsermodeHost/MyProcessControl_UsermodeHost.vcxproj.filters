@@ -19,9 +19,6 @@
     <Filter Include="libs">
       <UniqueIdentifier>{e87384df-0899-45c4-b234-fb7b3c81ff83}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Service">
-      <UniqueIdentifier>{a9ca92ef-1634-48ca-aa7a-4e4719ff098d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="libs\tinyxml2">
       <UniqueIdentifier>{eca4ddf2-277a-465c-839d-b642ea906e71}</UniqueIdentifier>
     </Filter>
@@ -33,9 +30,6 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="svcmain.cpp">
-      <Filter>Service</Filter>
-    </ClCompile>
     <ClCompile Include="..\tinyxml2\tinyxml2.cpp">
       <Filter>libs\tinyxml2</Filter>
     </ClCompile>
@@ -45,13 +39,19 @@
     <ClCompile Include="modaldlg.cpp">
       <Filter>资源文件\dependson</Filter>
     </ClCompile>
+    <ClCompile Include="svcmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\inject.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\psprotect.cpp">
+      <Filter>资源文件\dependson</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="res\0\resource.h">
       <Filter>资源文件\0</Filter>
-    </ClInclude>
-    <ClInclude Include="svcmain.h">
-      <Filter>Service</Filter>
     </ClInclude>
     <ClInclude Include="..\tinyxml2\tinyxml2.h">
       <Filter>libs\tinyxml2</Filter>
@@ -63,6 +63,15 @@
       <Filter>资源文件</Filter>
     </ClInclude>
     <ClInclude Include="modaldlg.h">
+      <Filter>资源文件\dependson</Filter>
+    </ClInclude>
+    <ClInclude Include="svcmain.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\inject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\psprotect.h">
       <Filter>资源文件\dependson</Filter>
     </ClInclude>
   </ItemGroup>
@@ -83,5 +92,7 @@
     <None Include="res\0\7za.exe">
       <Filter>资源文件\0</Filter>
     </None>
+    <None Include="..\dllcache\MyProcessControlHooks_x64.dll" />
+    <None Include="..\dllcache\MyProcessControlHooks_x86.dll" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,9 @@ extern "C" {
 		IN UINT uType, IN WORD wLanguageId, IN DWORD dwMilliseconds);
 };
 
+using mpc_rules_t = vector<mpc_rule_t>;
 typedef struct _mpc_rule_t {
+	CHAR name[64];
 
 } mpc_rule_t;
 
@@ -26,6 +28,7 @@ public:
 	string cfg_path;
 	HANDLE cfgfilelk;
 	vector<mpc_rule_t> rules;
+	fstream log;
 	//HANDLE hPipeServer;
 	//HANDLE hpSubProcess;
 	bool pause_needs_confirm, stoppable;
@@ -34,12 +37,16 @@ public:
 	static void WINAPI ServiceLaunch_main(DWORD, LPWSTR*);
 	static void WINAPI ReportErrorAndExit(DWORD dwErrCode);
 	static void WINAPI ServiceHandler(DWORD fdwControl);
-	static void WINAPI srv_core_thread(LPVOID);
+	static void __cdecl srv_core_thread(LPVOID);
 	void WINAPI parseConfig();
+	void WINAPI applyConfig();
+	static DWORD WINAPI StoppingThrd(PVOID);
+	static DWORD WINAPI PausingThrd(PVOID);
 	//static DWORD WINAPI thPipeServer(PVOID);
 
 protected:
 	//static void PipeDataHandler(HANDLE pipe, string command);
+	DWORD last_stat;
 	void _findrules(tinyxml2::XMLElement* el);
 };
 

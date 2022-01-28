@@ -49,6 +49,8 @@ A example config file
 				<target [type="file|process|pid"]>TargetFile(no default; use * to special all processes)</target>
 				<object ...>...</object>
 			</rule>
+				Note:
+			For all <name> attributes, you can use up to 64 characters.
 			
 				How to define objects for rules?
 			<object type="file|directory|key|process|thread|window|api"(no default; HANDLE is saw as file) 
@@ -64,25 +66,10 @@ A example config file
 				<data>...</data>
 			</object>
 				Any example?
-			See self_protection.
+			Nothing
 			-->
 
-			<rules name="self_protection" enabled="true" hidden="true">
-				<rule name="self_protection_u" enabled="true">
-					<target type="process">*&lt;filter:[user:active]&gt;</target>
-					<object type="process" option="block">
-						<action>open;Priv:1;suspend</action>
-						<data>${builtin.current_process_name}</data>
-					</object>
-				</rule>
-				<rule name="self_protection_f" enabled="true">
-					<target type="process">*&lt;filter:[user:active]&gt;</target>
-					<object type="file" option="block">
-						<action>modify;delete</action>
-						<data>${builtin.current_process_name}</data>
-					</object>
-				</rule>
-			</rules>
+			
 			
 
 		</rules>	
