@@ -10,7 +10,22 @@
       "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
       "DisplayName": "杂项文件",
       "ColorIndex": -1
+    },
+    "a82b51e1-695e-4d55-8196-2db642e81087": {
+      "ProjectGuid": "a82b51e1-695e-4d55-8196-2db642e81087",
+      "DisplayName": "Dll1",
+      "ColorIndex": 1
+    },
+    "478fce36-d163-4d4e-9753-dff36d9577ea": {
+      "ProjectGuid": "478fce36-d163-4d4e-9753-dff36d9577ea",
+      "DisplayName": "MyProcessControlHooks",
+      "ColorIndex": 2
+    },
+    "96231b3b-ee04-4320-9c64-592c49ac0a42": {
+      "ProjectGuid": "96231b3b-ee04-4320-9c64-592c49ac0a42",
+      "DisplayName": "MyProcessProtect",
+      "ColorIndex": 3
     }
   },
-  "NextColorIndex": 1
+  "NextColorIndex": 4
 }

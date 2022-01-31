@@ -24,6 +24,8 @@ static int main_ServiceOptions(CmdLineA& cl);
 static void showHelp();
 // 
 static int ServiceExitConfirm(CmdLineA& cl);
+// execute [--debug-service]
+static int ExecDebugService(DWORD pid/*, DWORD tid*/, LPCSTR restart_service_name);
 
 
 /* ==================================== */
@@ -141,6 +143,78 @@ INT APIENTRY wWinMain(
 			return GetLastError(); else return 0;
 	}
 
+	if (cl.getopt("debug-service") && cl.getopt("p") == 1/* && cl.getopt("tid") == 1*/) {
+		string _spid/*, _stid*/; cl.getopt("p", _spid);/* cl.getopt("tid", _stid);*/
+		DWORD pid = (DWORD)atol(_spid.c_str());
+		//DWORD tid = (DWORD)atol(_stid.c_str());
+		if (pid == 0/* || tid == 0*/) return 87;
+		string _srestsvc; cl.getopt("restart-service-on-terminated", _srestsvc);
+		if (cl.getopt("launch")) {
+			//srand(time(NULL));
+			CHAR chAppUuid[64] = { 0 };
+			LoadStringA(ThisInst, IDS_STRING_APP_UUID, chAppUuid, 63);
+			string platform =
+#ifdef _WIN64
+				"x64";
+#else
+				"x86";
+#endif
+			TSTRING szExePath = to__str(getenv("SystemRoot") + "\\Temp\\"s + 
+				chAppUuid + "." + platform + ".exe");
+			DeleteFile(szExePath.c_str());
+			CopyFile(s2wc(GetProgramDir()), szExePath.c_str(), TRUE);
+			TSTRING cl_co;
+			CmdLine cl(GetCommandLine());
+			for (auto& i : cl) {
+				wprintf(L"[DEBUG] i: %s\n", i.c_str());
+				if (CmdLine(i).getopt(_T("launch"))) continue;
+				cl_co += _T("\""s) + i + _T("\" ");
+			}
+			wprintf(L"[DEBUG] Command Line: %s\n", cl_co.c_str());
+			PROCESS_INFORMATION pi;
+			ZeroMemory(&pi, sizeof(pi));
+			{
+				STARTUPINFO si;
+				ZeroMemory(&si, sizeof(si));
+				si.cb = sizeof(si);
+				LPTSTR cl = (LPTSTR)calloc(cl_co.length() + 1, sizeof(TCHAR));
+				if (!cl) return 0;
+#ifdef UNICODE
+				wcscpy_s(cl, cl_co.length() + 1, cl_co.c_str());
+#else
+				strcpy_s(cl, cl_co.length() + 1, cl_co.c_str());
+#endif
+				BOOL r = ::CreateProcess(szExePath.c_str(), cl,
+					NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL,
+					&si, &pi);
+				free(cl);
+				if (!r) return 0;
+			};
+			if (!pi.hProcess) return 0;
+			CloseHandle(pi.hThread);
+			Process.resume(pi.hProcess);
+			CloseHandle(pi.hProcess);
+			return pi.dwProcessId;
+		}
+		SetCurrentDirectoryW(s2wc(GetProgramPath()));
+		auto r = ExecDebugService(pid, /*tid,*/
+			_srestsvc.empty() ? NULL : _srestsvc.c_str());
+#if 0
+		if (cl.getopt("autodelete")) {
+			string batname = "autodeleter." + GetProgramInfo().name + ".bat";
+			fstream deleter(batname, ios::out);
+			deleter << "@echo off" << endl
+				<< ":a" << endl
+				<< "del /f /s /q \"" << GetProgramDir() <<
+					"\" && del /f /s /q \"%~dp0\" && exit /b" << endl
+				<< "goto a" << endl;
+			deleter.close();
+			Process.StartOnly_HiddenWindow(s2ws("cmd.exe /c \"" + batname + "\""));
+		}
+#endif
+		return r;
+	}
+
 	if (cl.getopt("help")) {
 		showHelp(); return 0;
 	}
@@ -207,7 +281,7 @@ static int main_ServiceOptions(CmdLineA& cl) {
 			"\"" + name + "\" --config=\"" + config + "\"",
 			sttyp, display, des, SERVICE_WIN32_OWN_PROCESS)) {
 			fprintf(stderr, "[ERROR] Cannot CreateService!!\n");
-			fprintf(stderr, "[ERROR] %ld: %s\n", GetLastError(), LastErrorStrA());
+			fprintf(stderr, "[ERROR] %ld: %s\n", GetLastError(), LastErrorStrA().c_str());
 		}
 		return GetLastError();
 	}
@@ -220,7 +294,7 @@ static int main_ServiceOptions(CmdLineA& cl) {
 		SetLastError(0);
 		if (0 != ServiceManager.Remove(name)) {
 			fprintf(stderr, "[FATAL] Cannot DeleteService\n");
-			fprintf(stderr, "[ERROR] %ld: %s\n", GetLastError(), LastErrorStrA());
+			fprintf(stderr, "[ERROR] %ld: %s\n", GetLastError(), LastErrorStrA().c_str());
 		}
 		return GetLastError();
 	}
@@ -241,11 +315,39 @@ void showHelp() {
 		else MessageBoxA(NULL, HelpMessage.c_str(), "Help", MB_ICONINFORMATION);
 }
 
+#if 0
+// this is not useful
+HDC GdiScreenShot(_In_ POINT* size) {
+	HDC dcScreen;
+	HBITMAP  m_bmpScreen;
+	HBITMAP hOldBitmap;
+	HDC  m_dcMem;
+	dcScreen = CreateDCA("DISPLAY", NULL, NULL, NULL);    //创建屏幕设备dc
+	auto m_size_cx = GetDeviceCaps(dcScreen, HORZRES);
+	auto m_size_cy = GetDeviceCaps(dcScreen, VERTRES);
+
+	m_dcMem = CreateCompatibleDC(dcScreen); //创建与设备dc兼容的内存dc
+	m_bmpScreen = CreateCompatibleBitmap(dcScreen, m_size_cx, m_size_cy);
+
+	hOldBitmap = (HBITMAP)SelectObject(m_dcMem, m_bmpScreen);
+	BitBlt(m_dcMem, 0, 0, m_size_cx, m_size_cy, dcScreen, 0, 0, SRCCOPY);
+
+	size->x = m_size_cx; size->y = m_size_cy;
+
+	return m_dcMem;
+
+	//————————————————
+	//	版权声明：本文为CSDN博主「SuperCoderJz」的原创文章，
+	// 遵循CC 4.0 BY - SA版权协议，转载请附上原文出处链接及本声明。
+	//	原文链接：https ://blog.csdn.net/u010442009/article/details/39368499
+}
+#endif
+
 int ServiceExitConfirm(CmdLineA& cl) {
 	string mode;
 	if (cl.getopt("mode", mode) != 1) return ERROR_BAD_ARGUMENTS;
-	HWND hw = LockScreen();
-	if (!hw) exit(GetLastError());
+	//HWND hw = LockScreen();
+	//if (!hw) exit(GetLastError());
 	//auto _l = [](void*)->DWORD { LockScreen_msgloop(); return 0; };
 	//HANDLE mlp = CreateThread(0, 0, _l, 0, 0, 0);
 	LPCWSTR szopt = L"";
@@ -255,10 +357,90 @@ int ServiceExitConfirm(CmdLineA& cl) {
 	wstring szDlgText = L"Are you sure you want to "s + szopt + L"?\n\n"
 		L"This operation will cause application control cannot be strictly enforced."
 		 "\n\n* The recommended action will be performed automatically after 5 seconds."
-	; int result = MessageBoxTimeoutW(hw, szDlgText.c_str(), L"Service Control Confirm",
+	;
+	string svc_prefix; cl.getopt("svc-name", svc_prefix);
+	if (!svc_prefix.empty()) svc_prefix = "[" + svc_prefix + "] - ";
+	//DebugBreak();
+    HDESK hDeskOld = GetThreadDesktop(GetCurrentThreadId());
+	if (!hDeskOld) exit(1);
+	HDESK hDesk = CreateDesktopW(L"Desktop_securedesktop_MyProcessControl",
+		NULL, NULL, 0, GENERIC_ALL, NULL);
+	if (!hDesk) exit(1);
+	SetThreadDesktop(hDesk);
+	SwitchDesktop(hDesk);
+	//POINT sz; AutoZeroMemory(sz);
+	//HDC hScreen = GdiScreenShot(&sz);
+	//HDC hdc = GetWindowDC(GetDesktopWindow());
+	//StretchBlt(hdc, 0, 0, sz.x, sz.y, hScreen, 0, 0, sz.x, sz.y, SRCCOPY);
+	int result = MessageBoxTimeoutW(NULL, szDlgText.c_str(),
+		s2wc(svc_prefix + "Service Control Confirm"),
 		MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING | MB_TOPMOST | MB_SYSTEMMODAL, 0, 5000);
-	UnLockScreen();
+	//UnLockScreen();
+	SwitchDesktop(hDeskOld);
+	CloseDesktop(hDesk);
 	exit(-result);
+	return 0;
+}
+
+int ExecDebugService(DWORD pid,/* DWORD tid,*/ LPCSTR restart_service_name) {
+	if (!EnableDebugPrivilege()) return GetLastError();
+	EnableAllPrivileges();
+	if (!DebugActiveProcess(pid)) return GetLastError();
+	DebugSetProcessKillOnExit(FALSE);
+
+#if 0
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, tid);
+	if (!hThread) goto Final;
+	if (hThread) {
+		SuspendThread(hThread);
+		//HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+		//if (hProcess) {
+		//	while (WAIT_TIMEOUT == WaitForSingleObject(hProcess, INFINITE));
+		//	CloseHandle(hProcess);
+		//}
+	}
+#endif
+	DEBUG_EVENT dbe; AutoZeroMemory(dbe);
+	while (WaitForDebugEventEx(&dbe, INFINITE)) {
+		switch (dbe.dwDebugEventCode) {
+		case EXCEPTION_DEBUG_EVENT:
+			switch (dbe.u.Exception.ExceptionRecord.ExceptionCode) {
+			case EXCEPTION_ACCESS_VIOLATION:
+				ContinueDebugEvent(dbe.dwProcessId, dbe.dwThreadId, DBG_CONTINUE);
+				break;
+			case EXCEPTION_BREAKPOINT:
+			case DBG_CONTROL_C:
+			default:
+				ContinueDebugEvent(dbe.dwProcessId, dbe.dwThreadId, DBG_CONTINUE);
+				break;
+			}
+			break;
+		case EXIT_PROCESS_DEBUG_EVENT:
+			//CloseHandle(hThread);
+			if (!restart_service_name) while (TRUE) Sleep(INFINITE);
+			else {
+				/*
+				Because the service will kill the subprocess on be stopped,
+				this is UNEXPECTED STOP
+				*/
+				DebugActiveProcessStop(pid);
+				HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+				if (hProcess) {
+					while (WAIT_TIMEOUT == WaitForSingleObject(hProcess, INFINITE));
+					CloseHandle(hProcess);
+				}
+				ServiceManager.Start(restart_service_name);
+				return 1;
+			}
+			goto Final;
+			break;
+		default:
+			ContinueDebugEvent(dbe.dwProcessId, dbe.dwThreadId, DBG_CONTINUE);
+		}
+	}
+Final:
+	DebugActiveProcessStop(pid);
+
 	return 0;
 }
 

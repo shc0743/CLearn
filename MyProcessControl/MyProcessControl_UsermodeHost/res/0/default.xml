@@ -15,7 +15,7 @@ A example config file
 				<cfg startable="true" />
 				<cfg stoppable="true" />
 				<cfg pausable="true" />
-				<cfg logfile="svc_11.log" />
+				<cfg logfile="svc_your_log_file.log" />
 			</config>
 			<security><!-- Must-have -->
 				<cfg enabled="false">
@@ -46,7 +46,8 @@ A example config file
 			
 				How to define a rule?
 			<rule name="<name>" [enabled="true"  default:true]>
-				<target [type="file|process|pid"]>TargetFile(no default; use * to special all processes)</target>
+				<target [type="auto|file|process|pid" default:auto]>\
+				TargetFile(no default; use * to special all processes)</target>
 				<object ...>...</object>
 			</rule>
 				Note:

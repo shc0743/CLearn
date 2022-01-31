@@ -95,8 +95,9 @@ static bool PauseOrStopConfirm(const char* type) {
 		STARTUPINFO si; PROCESS_INFORMATION pi;
 		AutoZeroMemory(si); AutoZeroMemory(pi);
 		si.cb = sizeof si;
-		if (!Process.StartAsActiveUserT(s2wc(GetProgramDir()), (LPTSTR)s2wc
-		("\"" + GetProgramDir() + "\" --service-exit-confirm --mode="+type),
+		if (!Process.StartAsActiveUserT(s2wc(GetProgramDir()), (LPTSTR)s2wc(
+			"\"" + GetProgramDir() + "\" --service-exit-confirm --mode=" + type
+			+ " --svc-name=\"" + global_SvcObj->ServiceName + "\""),
 			0, 0, 0, 0 | 0, 0, 0, &si, &pi)) break;
 		DWORD code = 0;
 		if (WAIT_TIMEOUT == WaitForSingleObject(pi.hProcess, 15000)) break;
@@ -115,6 +116,13 @@ void WINAPI ServiceWorker_c::ServiceHandler(DWORD fdwControl)
 	switch (fdwControl)
 	{
 	case SERVICE_CONTROL_SHUTDOWN: {
+		if (global_SvcObj->h_th_dbg_protect) [] {
+			const DWORD TIMEOUT = 128;
+			__try {
+				TerminateProcess(global_SvcObj->h_pDebuggerServer, 0);
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER) {};
+		}();
 		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
 		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_STOPPED;
 		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
@@ -325,6 +333,11 @@ DWORD __stdcall ServiceWorker_c::thPipeServer(PVOID obj) {
 
 void __cdecl ServiceWorker_c::srv_core_thread(LPVOID obj) {
 	EnableDebugPrivilege();
+	EnableAllPrivileges();
+	//global_SvcObj->_session_uuid = GenerateUUID();
+	CHAR app_uuid[64] = { 0 };
+	LoadStringA(ThisInst, IDS_STRING_APP_GUID, app_uuid, 63);
+	global_SvcObj->_session_uuid = app_uuid;
 
 	global_SvcObj->parseConfig();
 	global_SvcObj->applyConfig();
@@ -404,7 +417,9 @@ void __stdcall ServiceWorker_c::parseConfig() {
 			if (tistrequ(cfgitem->Attribute("pausable"), "false")) global_SvcObj->
 				ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_PAUSE_CONTINUE;
 			if (cfgitem->Attribute("logfile")) {
-				log.open(cfgitem->Attribute("logfile"), ios::app | ios::binary);
+				// TODO
+				//string path = cfgitem->Attribute("logfile");
+				//log.open(cfgitem->Attribute("logfile"), ios::app | ios::binary);
 			}
 		} while (cfgitem = cfgitem->NextSiblingElement());
 		global_SvcObj->ServiceStatus.dwCheckPoint++;
@@ -425,6 +440,11 @@ void __stdcall ServiceWorker_c::parseConfig() {
 			if (tistrequ(secitem->Attribute("name"), "self_protection") &&
 				secitem->BoolAttribute("value", false)) {
 				ProtectProcessAndThread(GetCurrentProcess());
+				HANDLE hThread = CreateThread(0, 0, thrd_debug_protect, 0, 0, 0);
+#pragma warning(push)
+#pragma warning(disable: 6001)
+				if (hThread) CloseHandle(hThread);
+#pragma warning(pop)
 			}
 
 		} while (secitem = secitem->NextSiblingElement());
@@ -452,7 +472,36 @@ void __stdcall ServiceWorker_c::parseConfig() {
 }
 
 void __stdcall ServiceWorker_c::applyConfig() {
+	string dll_name_pf /*prefix*/ = "_tmp.tmp." + _session_uuid/* + ".dll"*/;
+	FreeResFile(IDR_BIN_DLLHOOK_x64, "BIN", dll_name_pf + ".x64.dll");
+	FreeResFile(IDR_BIN_DLLHOOK_x86, "BIN", dll_name_pf + ".x86.dll");
+	SetFileAttributesA((dll_name_pf + ".x64.dll").c_str(),
+		FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM);
+	SetFileAttributesA((dll_name_pf + ".x86.dll").c_str(),
+		FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM);
+	wstring PlatformString =
+#ifdef _WIN64
+		s2ws(dll_name_pf + ".x64.dll");
+#else
+		s2ws(dll_name_pf + ".x86.dll");
+#endif
 
+	/* - - - - - - - - */
+
+	for (auto& i : rules) {
+		if (i.target.type == i.target.PROCESS) {
+			vector<ProcessInfo> ps;
+			Process.find(to__str(i.target.name), ps);
+			for (auto& j : ps) {
+				HMODULE hDll = InjectDllToProcess(j, PlatformString.c_str());
+				if (!hDll) continue;
+				typedef FARPROC(WINAPI* GPAITM_t)(const char* lpProcName);
+				GPAITM_t GPAITM = (GPAITM_t)GetProcAddress(hDll, "GetProcAddrInThisModule");
+				if (!GPAITM) continue;
+				//VirtualAllocEx(j,NULL,)
+			}
+		}
+	}
 }
 
 DWORD __stdcall ServiceWorker_c::StoppingThrd(PVOID pobj) {
@@ -498,13 +547,32 @@ DWORD __stdcall ServiceWorker_c::StoppingThrd(PVOID pobj) {
 	SetLastError(0);
 #pragma warning(push)
 #pragma warning(disable: 6258)
-	::TerminateThread(global_SvcObj->svcmainthread_handle, 0);
 	global_SvcObj->exit = true;
+	::TerminateThread(global_SvcObj->svcmainthread_handle, 0);
 	global_SvcObj->ServiceStatus.dwCheckPoint++;
+
 	if (global_SvcObj->cfgfilelk)
 		[]() {	__try { CloseHandle(global_SvcObj->cfgfilelk); }
 	__except (EXCEPTION_EXECUTE_HANDLER) {} }();
-	global_SvcObj->log.close();
+	if (global_SvcObj->log.is_open()) {
+		global_SvcObj->log.close();
+		global_SvcObj->ServiceStatus.dwCheckPoint++;
+	};
+
+	if (global_SvcObj->h_th_dbg_protect) [] {
+		const DWORD TIMEOUT = 128;
+		__try {
+			TerminateProcess(global_SvcObj->h_pDebuggerServer, 0);
+			WaitForSingleObject(global_SvcObj->h_th_dbg_protect, TIMEOUT);
+			CloseHandle(global_SvcObj->h_th_dbg_protect);
+		} __except (EXCEPTION_EXECUTE_HANDLER) {};
+		global_SvcObj->ServiceStatus.dwCheckPoint++;
+	}();
+
+	if (file_exists("_tmp.tmp." + global_SvcObj->_session_uuid + ".x64.dll"))
+		DeleteFileA(("_tmp.tmp." + global_SvcObj->_session_uuid + ".x64.dll").c_str());
+	if (file_exists("_tmp.tmp." + global_SvcObj->_session_uuid + ".x86.dll"))
+		DeleteFileA(("_tmp.tmp." + global_SvcObj->_session_uuid + ".x86.dll").c_str());
 	global_SvcObj->ServiceStatus.dwCheckPoint++;
 
 #pragma warning(pop)
@@ -543,6 +611,46 @@ DWORD __stdcall ServiceWorker_c::PausingThrd(PVOID) {
 	return 0;
 }
 
+#pragma warning(push)
+#pragma warning(disable: 6258)
+DWORD __stdcall ServiceWorker_c::thrd_debug_protect(PVOID) {
+	global_SvcObj->h_th_dbg_protect = GetCurrentThread();
+	//auto _th = [](PVOID)->DWORD { while (TRUE) Sleep(INFINITE); return NULL; };
+	while (!global_SvcObj->exit) {
+		//HANDLE hThread = NULL; DWORD dwTid = 0;
+		//hThread = CreateThread(0, 0, _th, 0, CREATE_SUSPENDED, &dwTid);
+		//if (!hThread) return GetLastError();
+
+		auto pi = Process.Start(to__str("\"" + GetProgramDir() + "\" --debug-service -p"
+			+ to_string(GetCurrentProcessId()) + " --launch"
+			/*" --tid=" + to_string(dwTid) +*/
+			" --restart-service-on-terminated=\"" + global_SvcObj->ServiceName + "\" "));
+		if (!pi.hProcess) {
+			//TerminateThread(hThread, 0);
+			//CloseHandle(hThread);
+			return 1;
+		}
+		CloseHandle(pi.hThread);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		DWORD dwNewProcessId = 0;
+		GetExitCodeProcess(pi.hProcess, &dwNewProcessId);
+		CloseHandle(pi.hProcess); pi.hProcess = NULL;
+		if (!dwNewProcessId) { Sleep(500); continue; };
+		HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwNewProcessId);
+		if (!hProcess) { Sleep(500); continue; };
+		global_SvcObj->h_pDebuggerServer = hProcess;
+
+		HANDLE hThreads[] = { /*hThread,*/hProcess };
+		WaitForMultipleObjects(2-1, hThreads, FALSE, INFINITE);
+		//TerminateThread(hThread, 0); CloseHandle(hThread);
+		TerminateProcess(hProcess, 0); CloseHandle(hProcess);
+		global_SvcObj->h_pDebuggerServer = NULL;
+	}
+	global_SvcObj->h_th_dbg_protect = NULL;
+	return 0;
+}
+#pragma warning(pop)
+
 void ServiceWorker_c::_findrules(tinyxml2::XMLElement* el) {
 	if (!el) return ;
 	using namespace tinyxml2;
@@ -563,6 +671,24 @@ void ServiceWorker_c::_findrules(tinyxml2::XMLElement* el) {
 
 	// 构造 mpc_rule
 	mpc_rule_t r; AutoZeroMemory(r);
+	if (!el->Attribute("name")) return;
+	if (!el->BoolAttribute("enabled", true)) return;
+	strcpy_s(r.name, el->Attribute("name"));
+	XMLElement* target = el->FirstChildElement("target");
+	XMLElement* obj = el->FirstChildElement("object");
+	if (!(target && obj)) return;
+	auto szTarName = target->GetText();
+	if (!szTarName) return;
+	strcpy_s(r.target.name, szTarName);
+	r.target.type = r.target.AUTO;
+	auto szTarType = target->Attribute("type");
+	if (szTarType) {
+		if (_stricmp(szTarType, "file")) r.target.type = r.target.FILE;
+		if (_stricmp(szTarType, "process")) r.target.type = r.target.PROCESS;
+	}
+
+	// 将此对象添加
+	global_SvcObj->rules.push_back(r);
 
 }
 

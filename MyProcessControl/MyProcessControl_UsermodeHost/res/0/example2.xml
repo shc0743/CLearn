@@ -15,7 +15,7 @@ A example config file
 				<cfg startable="true" />
 				<cfg stoppable="true" />
 				<cfg pausable="true" />
-				<cfg logfile="svc_11.log" />
+				<cfg logfile="svc_test1.log" />
 			</config>
 			<security><!-- Must-have -->
 				<cfg enabled="false">

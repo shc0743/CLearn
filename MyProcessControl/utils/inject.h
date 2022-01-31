@@ -24,3 +24,14 @@ HMODULE InjectDllToProcess(DWORD dwProcessId, LPCWSTR szDllPath, DWORD dwTimeout
 #endif
 );
 
+#if 0
+@trashed
+/**
+@brief Get Remote Process Function Address
+*/
+#ifdef __cplusplus
+extern "C"
+#endif
+FARPROC GetRemoteProcAddress(DWORD dwProcessId, HMODULE hModule, LPCSTR lpProcName);
+#endif
+

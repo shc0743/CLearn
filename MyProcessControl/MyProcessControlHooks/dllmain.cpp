@@ -23,3 +23,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
+
+FARPROC WINAPI GetProcAddrInThisModule(const char* lpProcName) {
+    return GetProcAddress(hInst, lpProcName);
+}
+

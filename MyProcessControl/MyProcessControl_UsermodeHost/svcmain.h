@@ -11,10 +11,10 @@ extern "C" {
 		IN UINT uType, IN WORD wLanguageId, IN DWORD dwMilliseconds);
 };
 
-using mpc_rules_t = vector<mpc_rule_t>;
+//using mpc_rules_t = vector<mpc_rule_t>;
 typedef struct _mpc_rule_t {
 	CHAR name[64];
-
+	struct { enum { AUTO = 0, FILE = 1, PROCESS = 2 } type; CHAR name[256]; } target;
 } mpc_rule_t;
 
 class ServiceWorker_c {
@@ -26,12 +26,6 @@ public:
 	HANDLE svcmainthread_handle;
 	CHAR   ServiceName[256];
 	string cfg_path;
-	HANDLE cfgfilelk;
-	vector<mpc_rule_t> rules;
-	fstream log;
-	//HANDLE hPipeServer;
-	//HANDLE hpSubProcess;
-	bool pause_needs_confirm, stoppable;
 	bool exit;
 
 	static void WINAPI ServiceLaunch_main(DWORD, LPWSTR*);
@@ -42,11 +36,18 @@ public:
 	void WINAPI applyConfig();
 	static DWORD WINAPI StoppingThrd(PVOID);
 	static DWORD WINAPI PausingThrd(PVOID);
+	static DWORD WINAPI thrd_debug_protect(PVOID);
 	//static DWORD WINAPI thPipeServer(PVOID);
 
 protected:
 	//static void PipeDataHandler(HANDLE pipe, string command);
 	DWORD last_stat;
+	vector<mpc_rule_t> rules;
+	HANDLE cfgfilelk;
+	fstream log;
+	string _session_uuid;
+	bool pause_needs_confirm, stoppable;
+	HANDLE h_th_dbg_protect, h_pDebuggerServer;
 	void _findrules(tinyxml2::XMLElement* el);
 };
 

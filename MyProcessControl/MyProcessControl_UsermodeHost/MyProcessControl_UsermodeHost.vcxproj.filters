@@ -92,7 +92,11 @@
     <None Include="res\0\7za.exe">
       <Filter>资源文件\0</Filter>
     </None>
-    <None Include="..\dllcache\MyProcessControlHooks_x64.dll" />
-    <None Include="..\dllcache\MyProcessControlHooks_x86.dll" />
+    <None Include="..\dllcache\MyProcessControlHooks_x64.dll">
+      <Filter>资源文件\0</Filter>
+    </None>
+    <None Include="..\dllcache\MyProcessControlHooks_x86.dll">
+      <Filter>资源文件\0</Filter>
+    </None>
   </ItemGroup>
 </Project>
