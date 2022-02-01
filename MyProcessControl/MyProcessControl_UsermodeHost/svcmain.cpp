@@ -160,6 +160,8 @@ void WINAPI ServiceWorker_c::ServiceHandler(DWORD fdwControl)
 	case SERVICE_CONTROL_CONTINUE: {
 		if (global_SvcObj->pause_needs_confirm)
 			global_SvcObj->ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
+		ResumeThread(global_SvcObj->svcmainthread_handle);
+
 		global_SvcObj->ServiceStatus.dwWin32ExitCode = 0;
 		global_SvcObj->ServiceStatus.dwCurrentState = SERVICE_RUNNING;
 		global_SvcObj->ServiceStatus.dwCheckPoint = 0;
