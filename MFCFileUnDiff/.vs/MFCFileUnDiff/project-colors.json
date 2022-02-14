@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "cf44f101-07bd-4afb-8a8a-3b8d6e95bf75": {
+      "ProjectGuid": "cf44f101-07bd-4afb-8a8a-3b8d6e95bf75",
+      "DisplayName": "MFCFileUnDiff",
+      "ColorIndex": 0
+    }
+  },
+  "NextColorIndex": 1
+}

@@ -72,7 +72,7 @@ FunctionEnd
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite ifnewer
-  File "D:\software\VisualStudio\source\repos\MFCFileUnDiff\bin\MFCFileUnDiff64.exe"
+  File "MFCFileUnDiff64.exe"
 
 ; Shortcuts
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application

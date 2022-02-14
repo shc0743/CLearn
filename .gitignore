@@ -10,6 +10,7 @@
 # Precompiled Headers
 *.gch
 *.pch
+*.ipch
 
 # Compiled Dynamic libraries
 *.so
@@ -27,6 +28,5 @@
 *.lib
 
 # Executables
-*.exe
 *.out
 *.app

@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 #include <vector>
 using namespace std;
+#define byte unsigned char
 #include "../../resource/tool.h"
 #include "sha256.h"
 #include "CDlgWait_1.h"
