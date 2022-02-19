@@ -284,7 +284,7 @@ int main() {
 	}
 #endif
 	wstring cmd_line = L"BrowserProcessPath" + files + 
-		L" --user-data-dir=\"" + user_data_dir;
+		L" --user-data-dir=\"" + user_data_dir + L"\"";
 	PROCESS_INFORMATION pi; {
 		STARTUPINFOW si;
 		AutoZeroMemory(si); AutoZeroMemory(pi);
