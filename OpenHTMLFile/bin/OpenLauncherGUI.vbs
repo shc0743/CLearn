@@ -35,4 +35,4 @@ Else
     fname="OpenHTMLFile32"
 End If
 
-ws.Run fname&" --con "&url ,1,false
+ws.Run fname&" "&url ,1,false
