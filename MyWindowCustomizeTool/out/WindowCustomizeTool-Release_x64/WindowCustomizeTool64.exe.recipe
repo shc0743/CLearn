@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\software\VisualStudio\source\repos\MyWindowCustomizeTool\bin\WindowCustomizeTool64.exe</FullPath>
+      <FullPath>D:\software\Program\source\VSProjects\MyWindowCustomizeTool\bin\WindowCustomizeTool64.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

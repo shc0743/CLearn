@@ -24,6 +24,9 @@ protected:
 	static VOID CALLBACK TimerProc_WindowSelect(HWND, UINT, UINT_PTR, DWORD);
 	static ATOM ClassRegister_selector_background();
 	static LRESULT CALLBACK WndProc_selector_background(HWND, UINT, WPARAM, LPARAM);
+	static ATOM ClassRegister_resizer();
+	static LRESULT CALLBACK WndProc_resizer(HWND, UINT, WPARAM, LPARAM);
+	static LRESULT CALLBACK WndProc_swpdlg(HWND, UINT, WPARAM, LPARAM);
 
 	HWND hWnd;
 	int nCmdShow;
@@ -41,10 +44,16 @@ protected:
 		wTextTHwndClass,
 		wStaticWTitle,
 		wEditWTitle,
-		wButtonApplyTitle;
+		wButtonApplyTitle,
+		wStatic3,
+		wTextParentHwnd,
+		wButtonSwToParent,
+		wButtonWinOpt,
+		wCheckEnableWin,
+		wStaticEbWin;
 
-	HWND targetHwnd, _tmp_tarhw, _tmp_select_targ;
-	bool hide_when_min;
+	HWND targetHwnd, _tmp_tarhw, _tmp_select_targ, _tmp_resizer;
+	bool hide_when_min, hightlighting;
 	int autorun_type/*0-Disabled 1-User 0x10-System*/;
 
 public:
