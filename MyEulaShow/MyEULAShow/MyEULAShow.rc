@@ -1,0 +1,214 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 非特定语言(默认值) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,1,1,1
+ PRODUCTVERSION 1,1,1,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "00000000"
+        BEGIN
+            VALUE "CompanyName", "End User Licence Agreement"
+            VALUE "FileDescription", "End User Licence Agreement"
+            VALUE "FileVersion", "1.1.1.1"
+            VALUE "InternalName", "EULA.exe"
+            VALUE "LegalCopyright", "Copyright (C)"
+            VALUE "OriginalFilename", "EULA.exe"
+            VALUE "ProductName", "EULA"
+            VALUE "ProductVersion", "1.1.1.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 0
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+IDR_BIN_7zDLL           BIN                     "..\\res\\7za.dll"
+
+IDR_BIN_7zEXE           BIN                     "..\\res\\7za.exe"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_UUID            "f5daf83f-ce5c-4f9a-bd1d-53d2a75907ef"
+    IDS_APP_GUID            "{FCA1DDA8-5B06-47F1-87FA-8DB56982F3E2}"
+    IDS_PRODUCT_NAME        "End User Licence Agreement"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_UI_GEN_CLASS        "Window.class.EULA.gen{f5daf83f}"
+    IDS_UI_GEN_TITLE        "EULA Display Generator"
+    IDS_UI_EULA_CLASS       "Window.class.EULA.eula{f5daf83f}"
+    IDS_UI_EXTING_CLASS     "Window.class.EULA.ext{f5daf83f}"
+    IDS_APP_CORRUPT         "This file is corrupt!\nPlease redownload a copy of this file."
+    IDS_APP_ERR_NO_MANIFEST "Manifest file is missing or broken!\n\nIf you are a user, please redownload a copy of this file.\nIf you are a developer, follow these steps:\n· Make sure you created <manifest.xml> in the archive and it is not broken."
+    IDS_APP_ERR_BAD_MANIFEST 
+                            "The manifest file format is incorrect or cannot be parsed!\n\nIf you are a user, please redownload a copy of this file.\nIf you are a developer, follow these steps:\n· manifest.xml is not empty\n· manifest.xml has no syntax errors\n· The manifest file already contains the items necessary for the application to run"
+END
+
+#endif    // 非特定语言(默认值) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(中性) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_GENERATE_EULA DIALOGEX 0, 0, 123, 50
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_ACCEPTFILES | WS_EX_APPWINDOW
+FONT 9, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "&Generate",IDOK,7,29,50,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,66,29,50,14
+    CTEXT           "This UI is deprecated.\nYou shouldn't use this UI now.",IDC_STATIC,7,7,109,18
+END
+
+IDD_DIALOG_EXTRACTING DIALOGEX 0, 0, 120, 60
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Extracting Files"
+FONT 9, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    PUSHBUTTON      "&Cancel",IDCANCEL,63,39,50,14
+    CTEXT           "Please wait while the \nprogram is extracting files...",IDC_STATIC,7,10,106,19
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DIALOG_GENERATE_EULA, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 116
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 43
+    END
+
+    IDD_DIALOG_EXTRACTING, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 113
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 53
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_DIALOG_GENERATE_EULA AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DIALOG_EXTRACTING AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // 英语(中性) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
