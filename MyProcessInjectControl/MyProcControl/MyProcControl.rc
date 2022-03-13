@@ -1,0 +1,128 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 非特定语言(默认值) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040004b0"
+        BEGIN
+            VALUE "FileDescription", "My Process Control"
+            VALUE "FileVersion", "1.2.0.0"
+            VALUE "InternalName", "MyProcControl.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2022"
+            VALUE "OriginalFilename", "MyProcCo.exe"
+            VALUE "ProductName", "MyProcControl"
+            VALUE "ProductVersion", "1.2.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x400, 1200
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+IDR_BIN_CONTROLLER64    BIN                     "..\\dllcache\\MyProcControlDLL64.dll"
+
+IDR_BIN_CONTROLLER32    BIN                     "..\\dllcache\\MyProcControlDLL32.dll"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_UUID            "cda23b8f-126e-426f-9986-1fa2b94fa4af"
+    IDS_APP_GUID            "{F592AF90-14AF-45B6-89C0-E90463A43624}"
+    IDS_SVC_DESCRIPTION     "This service receives process control requests and displays the user interface to the user. If the service is stopped, process control cannot be executed. If the service is disabled, any services that explicitly depend on it will fail to start."
+    IDS_UI_SVCCTLWINDOW_CLASS "Window.MyProcControl.Service.Control.Receive"
+    IDS_UI_INSTALL_WND_CLASS "Window.class.MyProcControl.Wnd.Install"
+    IDS_UI_ICONWND_CLASS    "Window.class.MyProcControl.Wnd.Icon"
+    IDS_SVC_SVCTL_PIPE_NAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control.Low"
+    IDS_UI_FILENAME_PREFIX  "MFCMyProcCtlUI"
+    IDS_UI_MFCUI_CLASS      "Window.class.MyProcControl.MFC.Wnd.main#32770"
+END
+
+#endif    // 非特定语言(默认值) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
