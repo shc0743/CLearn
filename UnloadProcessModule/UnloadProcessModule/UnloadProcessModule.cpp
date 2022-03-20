@@ -41,14 +41,15 @@ PVOID __stdcall GetProcessModuleBaseAddress(
 	DWORD dwProcessId, PCTSTR module_name, PMODULEENTRY32 result = nullptr
 );
 
-bool ExecuteNUVOS(DWORD pid, PCSTR module_name);
+bool ExecuteNUVOS(DWORD pid, PCSTR module_name,
+	bool useNtUnmapViewOfSection = false);
 
 int main(int argc, char* argv[]) {
 	using namespace std;
     if (argc < 3) {
         std::cout << "Usage:\n\t"
             "UnloadProcessModule <[/N ]ProcessName or PID>"
-            " <Module name>" << std::endl;
+            " <Module name> [/useNtUnmapViewOfSection]" << std::endl;
         return ERROR_INVALID_PARAMETER;
     }
 	if (!AdjustPrivilege(0x14, TRUE, FALSE)) {
@@ -61,6 +62,9 @@ int main(int argc, char* argv[]) {
 	}
 	//pause;
 	bool argv1_is__n = (_stricmp(argv[1], "/n") == 0);
+	bool usenu = (argc < 4) ? false :
+		(argc >= 5) ? (_stricmp(argv[4], "/useNtUnmapViewOfSection") == 0) :
+		(_stricmp(argv[3], "/useNtUnmapViewOfSection") == 0);
     DWORD pid = atol(argv[1]);
 	PCSTR modname = (argv1_is__n) ? argv[3] : argv[2];
     if (pid == 0 || argv1_is__n) {
@@ -74,14 +78,69 @@ int main(int argc, char* argv[]) {
 		bool bSuccess = true;
 		do {
 			if (0 == _stricmp(pe.szExeFile, procname)) {
-				bSuccess = bSuccess && ExecuteNUVOS(pe.th32ProcessID, modname);
+				bSuccess = bSuccess && ExecuteNUVOS(pe.th32ProcessID, modname, usenu);
 			}
 		} while (Process32Next(hSnapshot, &pe));
 		CloseHandle(hSnapshot);
 		return /*(bSuccess == true) ? 0 : 1*/!bSuccess;
     }
-	return !ExecuteNUVOS(pid, modname);
+	return !ExecuteNUVOS(pid, modname, usenu);
     return 0;
+}
+
+bool ExecuteNUVOS(DWORD pid, PCSTR module_name, bool useNtUnmapViewOfSection) {
+	using namespace std;
+	bool bSuccess = true;
+	HANDLE hp = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+	if (hp) {
+		MODULEENTRY32 md32{ 0 };
+		PVOID base_addr = GetProcessModuleBaseAddress
+		(pid, to__str(module_name).c_str(), &md32);
+		if (base_addr) {
+			if (useNtUnmapViewOfSection) {
+				NTSTATUS stat = CallNtUnmapViewOfSection(hp, base_addr);
+				if (NT_SUCCESS(stat)) {
+					cout << "NtUnmapViewOfSection (pid: " <<
+						pid << ") successsfully" << endl;
+				}
+				else {
+					bSuccess = false;
+					DWORD err_code = GetLastError();
+					cerr << "ERROR: NtUnmapViewOfSection " << pid
+						<< " failed : (NTSTATUS)" << stat << endl;
+				}
+			}
+			HMODULE kernel32_dll = LoadLibrary(_T("kernel32.dll"));
+			if (kernel32_dll) {
+				LPTHREAD_START_ROUTINE pFreeLibrary = (LPTHREAD_START_ROUTINE)
+					GetProcAddress(kernel32_dll, "FreeLibrary");
+				if (pFreeLibrary) {
+					HANDLE hThread = CreateRemoteThread(
+						hp, NULL, 0, pFreeLibrary, md32.hModule, 0, 0);
+					if (hThread) {
+						CloseHandle(hThread);
+						cout << "FreeLibrary executed (pid: " << pid << ")" << endl;
+					}
+				}
+				FreeLibrary(kernel32_dll);
+			}
+		}
+		else {
+			bSuccess = false;
+			DWORD err_code = GetLastError();
+			cerr << "ERROR: GetProcessModuleBaseAddress " << pid
+				<< " failed (" << err_code << "): "
+				<< ErrorCodeToStringA(err_code) << endl;
+		}
+	}
+	else {
+		bSuccess = false;
+		DWORD err_code = GetLastError();
+		cerr << "ERROR: OpenProcess " << pid <<
+			" failed (" << err_code << "): " <<
+			ErrorCodeToStringA(err_code) << endl;
+	}
+	return bSuccess;
 }
 
 PVOID __stdcall GetProcessModuleBaseAddress(
@@ -108,44 +167,6 @@ PVOID __stdcall GetProcessModuleBaseAddress(
 	} while (Module32Next(hSap, &me32));
 	CloseHandle(hSap);
 	return NULL;
-}
-
-bool ExecuteNUVOS(DWORD pid, PCSTR module_name) {
-	using namespace std;
-	bool bSuccess = true;
-	HANDLE hp = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-	if (hp) {
-		PVOID base_addr = GetProcessModuleBaseAddress
-		(pid, to__str(module_name).c_str());
-		if (base_addr) {
-			NTSTATUS stat = CallNtUnmapViewOfSection(hp, base_addr);
-			if (NT_SUCCESS(stat)) {
-				cout << "NtUnmapViewOfSection (pid: " <<
-					pid << ") successsfully" << endl;
-			}
-			else {
-				bSuccess = false;
-				DWORD err_code = GetLastError();
-				cerr << "ERROR: NtUnmapViewOfSection " << pid
-					<< " failed : (NTSTATUS)" << stat << endl;
-			}
-		}
-		else {
-			bSuccess = false;
-			DWORD err_code = GetLastError();
-			cerr << "ERROR: GetProcessModuleBaseAddress " << pid
-				<< " failed (" << err_code << "): "
-				<< ErrorCodeToStringA(err_code) << endl;
-		}
-	}
-	else {
-		bSuccess = false;
-		DWORD err_code = GetLastError();
-		cerr << "ERROR: OpenProcess " << pid <<
-			" failed (" << err_code << "): " <<
-			ErrorCodeToStringA(err_code) << endl;
-	}
-	return bSuccess;
 }
 
 std::string  ErrorCodeToStringA(DWORD ErrorCode) {
