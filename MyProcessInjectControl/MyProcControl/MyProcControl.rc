@@ -109,6 +109,7 @@ BEGIN
     IDS_SVC_SVCTL_PIPE_NAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control.Low"
     IDS_UI_FILENAME_PREFIX  "MFCMyProcCtlUI"
     IDS_UI_MFCUI_CLASS      "Window.class.MyProcControl.MFC.Wnd.main#32770"
+    IDS_UI_UCONSENT_CLASS   "Window.class.MyProcControl.Wnd.consent"
 END
 
 #endif    // 非特定语言(默认值) resources

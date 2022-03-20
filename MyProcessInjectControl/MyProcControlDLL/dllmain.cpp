@@ -3,6 +3,8 @@
 #include <AclAPI.h>
 #include "../../resource/tool.h"
 
+#define DLL_INJECT_WORKER_PSNAME "winlogon.exe"
+
 DWORD WINAPI ProcCtrl_MainThread(PVOID hDllModule);
 bool MyProtectWinObject(HANDLE hObject);
 DWORD __stdcall ServiceWorker_subpentry(PVOID);
@@ -21,12 +23,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         break;
     }
     if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
-		if (GetProgramInfo().name == "userinit.exe") {
+		if (GetProgramInfo().name == DLL_INJECT_WORKER_PSNAME) {
             WCHAR SystemPath[MAX_PATH + 32]{ 0 };
             GetSystemDirectoryW(SystemPath, MAX_PATH);
             if (SystemPath[wcslen(SystemPath) - 1] == L'\\')
                 SystemPath[wcslen(SystemPath) - 1] = 0;
-            wcscat_s(SystemPath, L"\\userinit.exe");
+            wcscat_s(SystemPath, L"\\" DLL_INJECT_WORKER_PSNAME);
             if (0 == _wcsicmp(s2wc(GetProgramDir()), SystemPath)) {
                 HANDLE hTrd = CreateThread(0, 0, ServiceWorker_subpentry,
                     (LPVOID)(INT_PTR)GetCurrentProcessId(), CREATE_SUSPENDED, 0);

@@ -179,12 +179,22 @@ int main(int argc, char* argv[]) {
 			if (!svc_name.empty()) SendMessage(hIconWindow,
 				WM_USER + 15, (WPARAM)svc_name.c_str(), 0);
 
-			MSG msg{ 0 };
-			while (GetMessage(&msg, 0, 0, 0)) {
-				DispatchMessage(&msg);
-				TranslateMessage(&msg);
-			}
-			return (int)msg.wParam;
+			//MSG msg{ 0 };
+			//while (GetMessage(&msg, 0, 0, 0)) {
+			//	DispatchMessage(&msg);
+			//	TranslateMessage(&msg);
+			//}
+			//return (int)msg.wParam;
+		}
+
+		if (cl.getopt(L"UserConsentHelper")) {
+			HANDLE h = CreateThread(0, 0, UserConsentHelperProc, NULL, 0, 0);
+			if (!h) return GetLastError();
+			DWORD code = 0;
+			WaitForSingleObject(h, INFINITE);
+			GetExitCodeThread(h, &code);
+			CloseHandle(h);
+			return (int)code;
 		}
 
 		// @deprecated This UI is deprecated. Please use MFCMyProcCtlUI

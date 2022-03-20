@@ -163,6 +163,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 		if (c.font) {
 			SendMessage(c.s1, WM_SETFONT, (WPARAM)c.font, 0);
 			SendMessage(c.b1, WM_SETFONT, (WPARAM)c.font, 0);
+			SendMessage(c.e1, WM_SETFONT, (WPARAM)c.font, 0);
 			SendMessage(c.s2, WM_SETFONT, (WPARAM)c.font, 0);
 			SendMessage(c.e2, WM_SETFONT, (WPARAM)c.font, 0);
 			SendMessage(c.s3, WM_SETFONT, (WPARAM)c.font, 0);

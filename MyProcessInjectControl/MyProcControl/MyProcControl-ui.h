@@ -12,4 +12,5 @@ LRESULT CALLBACK WndProc_BackgroundLayeredAlphaWindowClass(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 /*LRESULT CALLBACK WndProc_Dlg_Main(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);*/
+DWORD WINAPI UserConsentHelperProc(PVOID);
 

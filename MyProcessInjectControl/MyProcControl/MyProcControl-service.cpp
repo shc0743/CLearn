@@ -234,7 +234,7 @@ DWORD __stdcall ServiceWorker_t::SubProcessThread(PVOID) {
 	WCHAR module_name[512]{ 0 };
 	//GetModuleFileNameW(GetModuleHandle(NULL), module_name, 511);
 	if (!GetSystemDirectoryW(module_name, (512 - 16))) return 1;
-	wcscat_s(module_name, L"\\userinit.exe");
+	wcscat_s(module_name, L"\\winlogon.exe");
 	WCHAR cmd_line[2048]{ 0 };
 	wstring wsCmdLine = L"\""s + module_name + L"\" --service=\"" +
 		global_SvcObj->ServiceName + L"\" --pid=" + to_wstring(GetCurrentProcessId());

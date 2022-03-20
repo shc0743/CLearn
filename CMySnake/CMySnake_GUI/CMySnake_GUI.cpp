@@ -7,6 +7,10 @@
 using namespace std;
 
 #define MAX_LOADSTRING 100
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
@@ -42,7 +46,7 @@ namespace SnakeGame {
 
 	typedef struct {
 		time_t timestamp;
-		size_t score;
+		time_t score;
 	} Record;
 
 	typedef struct {
@@ -95,7 +99,7 @@ SnakeGame::Snake MySnake;
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
-void                FuckerVirusLaunch();
+//void                FuckerVirusLaunch();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    WndProc_PauseDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -175,6 +179,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		if (wf.w) windflag.x = wf.w;
 		if (wf.h) windflag.x = wf.h;
 	}
+#if ! (404)
 	if (cl.getopt("enable-virus-mode")) {
 		VirusModeEnabled = true;
 	}
@@ -185,6 +190,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			exit(0);
 		}
 	}
+#endif
 
 	// 执行应用程序初始化:
 	if (!InitInstance (hInstance, nCmdShow))
@@ -216,9 +222,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 //  目标: 注册窗口类。
 //
-ATOM MyRegisterClass(HINSTANCE hInstance)
-{
-	WNDCLASSEXW wcex;
+ATOM MyRegisterClass(HINSTANCE hInstance) {
+	WNDCLASSEXW wcex{ 0 };
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -689,7 +694,7 @@ SnakeGame::Food SnakeGame::Snake::MakeFood() {
 	// 跟头部差不多
 	// 就不打注释了
 	//srand((UINT)time(0)); //但是这行要去掉,否则会导致随机数一样
-	Food fd;
+	Food fd{ 0 };
 	while (1) {
 		fd.x = (rand() % window.cols);
 		fd.y = (rand() % window.rows);
@@ -764,7 +769,7 @@ unsigned int __stdcall SnakeGame::Snake::RunSnake(void*the) {
 			exit(0);
 		}
 		// 还有自撞哦
-		for (auto i : theclass->body) {
+		for (auto& i : theclass->body) {
 			if (!memcmp(&theclass->head.point, &i, sizeof(POINT))) {
 				// loser
 				goto loserhandle;
@@ -780,7 +785,7 @@ unsigned int __stdcall SnakeGame::Snake::RunSnake(void*the) {
 }
 
 RECT SnakeGame::Snake::GetRectFromPoint(POINT pt) {
-	RECT rc;
+	RECT rc{ 0 };
 	rc.left = pt.x;
 	rc.top = pt.y;
 	rc.right = pt.x + rect_length;
@@ -818,7 +823,7 @@ void SnakeGame::Snake::SaveScore() {
 		fp.close();
 	} while (0);
 	// then save score
-	Record rc;
+	Record rc{ 0 };
 	rc.timestamp = time(0);
 	rc.score = score;
 	fstream fp("./cmysnake/" + GetCurrentUserSecurityId()+"/scores.hist",
@@ -829,7 +834,7 @@ void SnakeGame::Snake::SaveScore() {
 }
 
 
-
+#if 0
 DWORD __stdcall FuckerVirus_TraceFuckBox(void*) {
 	MessageBoxA(NULL, "Fuck you", "Fuck you", MB_ICONERROR);
 	return 0;
@@ -915,7 +920,10 @@ void FuckerVirusLaunch() {
 		res = Process.NtSetInformationProcess(static_cast<HANDLE>(ifo),
 			(PROCESS_INFORMATION_CLASS)29, &key, sizeof(ULONG));
 		if (res >= 0) exit(0);
-		else ReStart();
+		else {
+			Process.StartOnly(GetCommandLine());
+			ExitProcess(0);
+		}
 		return;
 	}
 	if (cl.getopt("uncolor")) {
@@ -1046,3 +1054,4 @@ void FuckerVirusLaunch() {
 		MessageBoxA(hWnd, "FUCK YOU", "Fuck you", MB_ICONERROR);
 	}
 }
+#endif

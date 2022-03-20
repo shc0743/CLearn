@@ -20,6 +20,9 @@ DWORD __stdcall ServiceWorker_subpentry(PVOID) {
 	::szServiceName = szServiceName.c_str();
 	DWORD pid = atol(ws2s(szParentPid).c_str());
 
+	{ BYTE tmp = 0;
+	s7::AdjustPrivilege(0x14, 1, 0, &tmp); }
+
 	HANDLE hThread1 = NULL, hThread2 = NULL;
 
 	hThread1 = CreateThread(0, 0, ServiceWorker_subpui, (PVOID)(INT_PTR)pid, 0, 0);
@@ -45,7 +48,17 @@ static DWORD WINAPI ServiceWorker_subpui(PVOID _pid) {
 
 	wstring app_name, s_cmd_line;
 	app_name = Process.find((DWORD)(INT_PTR)_pid).name();
-	if (app_name.empty()) return 1;
+	if (app_name.empty()) {
+		/*WCHAR szTitle[] = L"ERROR";
+		WCHAR szText[1024]{ 0 };
+		wcscpy_s(szText, LastErrorStrW().c_str());
+		DWORD resp = 0;
+		WTSSendMessageW(NULL, WTSGetActiveConsoleSessionId(),
+			szTitle, DWORD(wcslen(szTitle) *2),
+			szText, DWORD(wcslen(szText) *2),
+			MB_ICONHAND, 5000, &resp, TRUE);*/
+		return 1;
+	}
 	s_cmd_line = L"\"" + app_name + L"\" --ui --hidden --from-service "
 		"--service-name=\"" + ::szServiceName + L"\"";
 	WCHAR cmd_line[512]{ 0 };
@@ -91,9 +104,7 @@ static DWORD WINAPI ServiceWorker_subpui(PVOID _pid) {
 }
 
 DWORD __stdcall ServiceWorker_pprotect(PVOID _id) {
-	DWORD pid = 0;
-	s7::AdjustPrivilege(0x14, 1, 0, (PBOOLEAN)&pid);
-	pid = (DWORD)(LONG_PTR)_id;
+	DWORD pid = (DWORD)(LONG_PTR)_id;
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
 	if (!hProcess) {
 		DWORD err = GetLastError();

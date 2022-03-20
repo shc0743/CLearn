@@ -11,7 +11,7 @@ using namespace std;
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-LRESULT WndProc_SvcCtrlWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndProc_SvcCtrlWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
 	case WM_USER + 44: {
 		WCHAR wclass_icon[256]{ 0 };
@@ -32,7 +32,7 @@ typedef struct {
 	WCHAR SvcName[64];
 } type_WndProc_TrayIconWindow;
 static std::map<HWND, type_WndProc_TrayIconWindow> TrayIconData;
-LRESULT WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
 	case WM_CREATE: {
 		type_WndProc_TrayIconWindow tt{ 0 };
@@ -155,10 +155,11 @@ LRESULT WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		break;
 
 	case WM_DESTROY: {
-		Shell_NotifyIconW(NIM_DELETE, &(TrayIconData[hWnd].nif));
+		if (TrayIconData[hWnd].nif.cbSize)
+			Shell_NotifyIconW(NIM_DELETE, &(TrayIconData[hWnd].nif));
 		try { TrayIconData.erase(hWnd); }
 		catch (std::exception&) {};
-		if (TrayIconData[hWnd].SvcName[0] == 0) PostQuitMessage(0);
+		if (TrayIconData[hWnd].SvcName[0] == L'\0') PostQuitMessage(0);
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 		break;
@@ -169,7 +170,7 @@ LRESULT WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	return 0;
 }
 
-LRESULT WndProc_SetupWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndProc_SetupWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
 	case WM_CREATE: {
 		CreateWindowExW(0, L"Static", L"Click [Install] to install\n"
@@ -249,7 +250,7 @@ void RegClass_BackgroundLayeredAlphaWindowClass() {
 	s7::MyRegisterClassW(0, 0, wcex);
 }
 
-LRESULT WndProc_BackgroundLayeredAlphaWindowClass(
+LRESULT CALLBACK WndProc_BackgroundLayeredAlphaWindowClass(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
@@ -280,6 +281,27 @@ LRESULT WndProc_BackgroundLayeredAlphaWindowClass(
 	default: 
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
+	return 0;
+}
+
+static bool UserConsentHelper_handler(HANDLE in, HANDLE out) {
+
+	return true;
+}
+DWORD WINAPI UserConsentHelperProc(PVOID) {
+	HANDLE
+		sin = GetStdHandle(STD_INPUT_HANDLE),
+		sout = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD nRead = 0;
+	constexpr UINT buf_size = 16384 * sizeof(CHAR);
+	PSTR pBuf = (PSTR)calloc(buf_size, 1);
+	if (!pBuf) return ERROR_OUTOFMEMORY;
+
+	while (ReadFile(sin, pBuf, buf_size, &nRead, NULL)) {
+		if (!UserConsentHelper_handler(sin, sout)) break;
+	}
+
+	free(pBuf);
 	return 0;
 }
 

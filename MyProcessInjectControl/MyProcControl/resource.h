@@ -13,6 +13,7 @@
 #define IDS_SVC_SVCTL_PIPE_NAME         1307
 #define IDS_UI_FILENAME_PREFIX          1308
 #define IDS_UI_MFCUI_CLASS              1309
+#define IDS_UI_UCONSENT_CLASS           1310
 
 // Next default values for new objects
 // 
