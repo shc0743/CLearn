@@ -409,14 +409,14 @@ DWORD __stdcall ServiceWorker_t::SvcCtlPipeThread(PVOID) {
 					UserServiceControlConfirm(1);
 					//fp << vl << endl;
 				}
-				if (string(buffer).find("Service Pause user_confirm") == 0) {
-					if (global_SvcObj->SvcStat.dwCurrentState != SERVICE_RUNNING) {
-						WriteFile(pipe, "already_paused", 15, &dwTemp, NULL);
-					} else UserServiceControlConfirm(2);
-				}
-				if (string(buffer).find("Service Resume user_confirm") == 0) {
-					ServiceManager.Continue(ws2s(global_SvcObj->ServiceName));
-				}
+				//if (string(buffer).find("Service Pause user_confirm") == 0) {
+				//	if (global_SvcObj->SvcStat.dwCurrentState != SERVICE_RUNNING) {
+				//		WriteFile(pipe, "already_paused", 15, &dwTemp, NULL);
+				//	} else UserServiceControlConfirm(2);
+				//}
+				//if (string(buffer).find("Service Resume user_confirm") == 0) {
+				//	ServiceManager.Continue(ws2s(global_SvcObj->ServiceName));
+				//}
 				fp.close();
 			}
 			DisconnectNamedPipe(pipe);

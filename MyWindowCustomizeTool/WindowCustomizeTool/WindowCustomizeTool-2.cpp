@@ -11,6 +11,10 @@ using namespace std;
 
 #define ThisInst (GetModuleHandle(NULL))
 
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
 
 // wWinMain function: The application will start from here.
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,

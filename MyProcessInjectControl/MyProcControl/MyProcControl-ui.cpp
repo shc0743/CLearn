@@ -33,9 +33,15 @@ typedef struct {
 } type_WndProc_TrayIconWindow;
 static std::map<HWND, type_WndProc_TrayIconWindow> TrayIconData;
 LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	switch (msg) {
-	case WM_CREATE: {
+	static UINT WM_TaskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
+	if (msg == WM_CREATE || msg == WM_TaskbarCreated) {
 		type_WndProc_TrayIconWindow tt{ 0 };
+		wstring svcname;
+		try {
+			svcname = TrayIconData.at(hWnd).SvcName;
+		}
+		catch (...) {}
+		if (!svcname.empty()) wcscpy_s(tt.SvcName, svcname.c_str());
 		NOTIFYICONDATAW nd{ 0 };
 		nd.cbSize = sizeof(nd);
 		nd.hWnd = hWnd;
@@ -46,7 +52,15 @@ LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 		tt.nif = nd;
 		TrayIconData[hWnd] = tt;
 		Shell_NotifyIconW(NIM_ADD, &nd);
+		if (!svcname.empty()) {
+			SendMessage(hWnd, WM_USER + 15, (WPARAM)tt.SvcName, 0);
+		}
 	}
+
+	switch (msg) {
+	case WM_CREATE:
+		// do something...
+		//MessageBoxW(hWnd, to_wstring(WM_TaskbarCreated).c_str(), L"test", 0);
 		break;
 
 	case WM_USER+13:
@@ -107,12 +121,9 @@ LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 				SendMessage(hWnd, msg, 0, WM_LBUTTONUP);
 			}
 			if (resp == IDR_EXIT) {
-				DestroyWindow(hWnd);
+				SendMessage(hWnd, WM_CLOSE, 0, 0);
 			}
-			if (resp == IDR_EXITSVC ||
-				resp == IDR_PAUSE ||
-				resp == IDR_RESUME)
-			{
+			if (resp == IDR_EXITSVC) {
 				HANDLE hPipe = NULL;
 				WCHAR pipe_name[256]{ 0 };
 				DWORD tmp = 0;
@@ -126,16 +137,17 @@ LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 						MessageBoxW(NULL, LastErrorStrW().c_str(), NULL, MB_ICONHAND);
 						break;
 					}
-					if (resp == IDR_EXITSVC)
-						::WriteFile(hPipe, "Service Stop user_confirm", 26, &tmp, NULL);
-					else if (resp == IDR_PAUSE)
-						::WriteFile(hPipe, "Service Pause user_confirm", 27, &tmp, NULL);
-					else if (resp == IDR_RESUME)
-						::WriteFile(hPipe, "Service Resume user_confirm", 28, &tmp, NULL);
+					::WriteFile(hPipe, "Service Stop user_confirm", 26, &tmp, NULL);
 					::CloseHandle(hPipe);
 				}
 				break;
 			}
+			if (resp == IDR_PAUSE) ShellExecuteW(NULL, L"runas", L"sc.exe",
+				(L"pause \""s + TrayIconData[hWnd].SvcName + L"\"").c_str(),
+				NULL, SW_HIDE);
+			if (resp == IDR_RESUME) ShellExecuteW(NULL, L"runas", L"sc.exe",
+				(L"continue \""s + TrayIconData[hWnd].SvcName + L"\"").c_str(),
+				NULL, SW_HIDE);
 
 			break;
 		}
@@ -150,16 +162,28 @@ LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 		wcscpy_s(TrayIconData[hWnd].nif.szTip, (L"["s + ((PCWSTR)wParam) +
 			L"] - MyProcControl User Interface").c_str());
 		Shell_NotifyIconW(NIM_MODIFY, &(TrayIconData[hWnd].nif));
-		wcscpy_s(TrayIconData[hWnd].SvcName, ((PCWSTR)wParam));
+		if (TrayIconData[hWnd].SvcName != (PCWSTR)wParam)
+			wcscpy_s(TrayIconData[hWnd].SvcName, ((PCWSTR)wParam));
 	}
 		break;
 
-	case WM_DESTROY: {
-		if (TrayIconData[hWnd].nif.cbSize)
+	case WM_CLOSE:
+		if (TrayIconData[hWnd].nif.cbSize) {
 			Shell_NotifyIconW(NIM_DELETE, &(TrayIconData[hWnd].nif));
+			TrayIconData[hWnd].nif.cbSize = 0;
+		}
+		if (TrayIconData[hWnd].SvcName[0] == L'\0')
+			DestroyWindow(hWnd);
+		break;
+
+	case WM_DESTROY: {
+		if (TrayIconData[hWnd].nif.cbSize) {
+			Shell_NotifyIconW(NIM_DELETE, &(TrayIconData[hWnd].nif));
+			TrayIconData[hWnd].nif.cbSize = 0;
+		}
 		try { TrayIconData.erase(hWnd); }
 		catch (std::exception&) {};
-		if (TrayIconData[hWnd].SvcName[0] == L'\0') PostQuitMessage(0);
+		PostQuitMessage(0);
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 		break;
@@ -167,6 +191,7 @@ LRESULT CALLBACK WndProc_TrayIconWindow(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 	default:
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
+
 	return 0;
 }
 
@@ -177,10 +202,10 @@ LRESULT CALLBACK WndProc_SetupWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 			"[MyProcControlSvc] to your computer.",
 			WS_CHILD | WS_VISIBLE | SS_CENTER,
 			10, 10, 265, 40, hWnd, 0, 0, 0);
-		HWND hbInstall = CreateWindowExW(0, L"Button", L"Install ([Enter])",
+		HWND hbInstall = CreateWindowExW(0, L"Button", L"Install [Enter]",
 			WS_CHILD | WS_VISIBLE | BS_CENTER | WS_TABSTOP,
 			10, 60, 130, 40, hWnd, (HMENU)IDOK, 0, 0);
-		CreateWindowExW(0, L"Button", L"Cancel ([ESC])",
+		CreateWindowExW(0, L"Button", L"Cancel [ESC]",
 			WS_CHILD | WS_VISIBLE | BS_CENTER | WS_TABSTOP,
 			145, 60, 130, 40, hWnd, (HMENU)IDCANCEL, 0, 0);
 		//MessageBoxW(NULL, LastErrorStrW().c_str(), 0, 0);
@@ -284,24 +309,68 @@ LRESULT CALLBACK WndProc_BackgroundLayeredAlphaWindowClass(
 	return 0;
 }
 
-static bool UserConsentHelper_handler(HANDLE in, HANDLE out) {
-
+static bool UserConsentHelper_handler(/*HANDLE in, HANDLE out*/) {
+	cout << "233" << endl;
 	return true;
 }
 DWORD WINAPI UserConsentHelperProc(PVOID) {
-	HANDLE
-		sin = GetStdHandle(STD_INPUT_HANDLE),
-		sout = GetStdHandle(STD_OUTPUT_HANDLE);
-	DWORD nRead = 0;
+	//HANDLE
+	//	sin = GetStdHandle(STD_INPUT_HANDLE),
+	//	sout = GetStdHandle(STD_OUTPUT_HANDLE);
+	//DWORD nRead = 0;
 	constexpr UINT buf_size = 16384 * sizeof(CHAR);
 	PSTR pBuf = (PSTR)calloc(buf_size, 1);
 	if (!pBuf) return ERROR_OUTOFMEMORY;
 
-	while (ReadFile(sin, pBuf, buf_size, &nRead, NULL)) {
-		if (!UserConsentHelper_handler(sin, sout)) break;
+	//while (ReadFile(sin, pBuf, buf_size, &nRead, NULL)) {
+	while (fread(pBuf, 1, buf_size, stdin)) {
+		if (!UserConsentHelper_handler(/*sin, sout*/)) break;
 	}
 
 	free(pBuf);
+	return 0;
+}
+DWORD WINAPI UserConsentHelperDebug(PVOID) {
+	AllocConsole();
+	HANDLE in = NULL, out = NULL;
+	if (!CreatePipe(&out, &in, NULL, 8192)) {
+		cerr << "ERROR: Cannot CreatePipe\n";
+		return GetLastError();
+	}
+
+	STARTUPINFO si{ 0 };
+	si.cb = sizeof(si);
+	si.dwFlags = STARTF_USESTDHANDLES;
+	si.hStdInput = in;
+	si.hStdOutput = si.hStdError = out;
+
+	PROCESS_INFORMATION pi = Process.Start(to__str(
+		"\"" + GetProgramDir() + "\" --UserConsentHelper"), si);
+	if (!pi.hProcess) {
+		CloseHandle(in); CloseHandle(out);
+		cerr << "ERROR: Cannot CreateProcess!\n";
+		return GetLastError();
+	}
+	CloseHandle(pi.hThread);
+
+	DWORD nRead = 0;
+	PCHAR buffer = (PSTR)calloc(8192, sizeof(CHAR));
+	if (!buffer) {
+		CloseHandle(in); CloseHandle(out);
+		CloseHandle(pi.hProcess);
+		cerr << "ERROR: Cannot alloc memory!\n";
+		return ERROR_OUTOFMEMORY;
+	}
+	while (cin.getline(buffer, 8192)) {
+		WriteFile(in, buffer, (DWORD)strlen(buffer), &nRead, NULL);
+		if (!ReadFile(out, buffer, 8192, &nRead, NULL)) break;
+		printf("%s", buffer);
+	}
+	Process.kill(pi.hProcess);
+	CloseHandle(in); CloseHandle(out);
+	CloseHandle(pi.hProcess);
+	free(buffer);
+
 	return 0;
 }
 

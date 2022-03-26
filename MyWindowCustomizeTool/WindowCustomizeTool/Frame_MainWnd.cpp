@@ -9,7 +9,7 @@ static WCHAR autorun_keyname[256];
 static Frame_MainWnd* wMainWindow;
 #define ThisInst (GetModuleHandle(NULL))
 
-static LRESULT WndProc_WindowFindDlg
+static INT_PTR CALLBACK WndProc_WindowFindDlg
 (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 Frame_MainWnd::Frame_MainWnd() {
@@ -64,6 +64,12 @@ ATOM Frame_MainWnd::MyRegisterClass() {
 }
 
 LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	static UINT WM_TaskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
+	if (message == WM_TaskbarCreated) {
+		SendMessage(hWnd, WM_USER + 20, 10, 1);
+		SendMessage(hWnd, WM_USER + 20, 10, 0);
+		return 0;
+	}
 	switch (message) {
 	case WM_CREATE:
 	{
@@ -75,18 +81,19 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			break;
 		}
 		LONG wStyle = 0;
-#if 0
 
-		//wStyle = ::GetWindowLongW(hWnd, GWL_STYLE);
-		//wStyle &= ~WS_CAPTION;
-		//wStyle &= ~WS_SYSMENU;
-		//wStyle &= ~WS_SIZEBOX;
-		//wStyle &= ~WS_MINIMIZE;
-		//wStyle &= ~WS_MINIMIZEBOX;
-		//wStyle &= ~WS_MAXIMIZE;
-		//wStyle &= ~WS_MAXIMIZEBOX;
-		//::SetWindowLongW(hWnd, GWL_STYLE, wStyle);
+		wStyle = ::GetWindowLongW(hWnd, GWL_STYLE);
+#if 0
+		wStyle &= ~WS_CAPTION;
+		wStyle &= ~WS_SYSMENU;
+		wStyle &= ~WS_SIZEBOX;
+		wStyle &= ~WS_MINIMIZE;
+		wStyle &= ~WS_MINIMIZEBOX;
+		wStyle &= ~WS_MAXIMIZE;
+		wStyle &= ~WS_MAXIMIZEBOX;
 #endif
+		wStyle |= WS_TABSTOP;
+		::SetWindowLongW(hWnd, GWL_STYLE, wStyle);
 
 		wStyle = ::GetWindowLongW(hWnd, GWL_EXSTYLE);
 		wStyle |= WS_EX_LAYERED;
@@ -131,6 +138,10 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			else RunUIProcess();
 #else
 			if (wMainWindow->nCmdShow) {
+				if (wMainWindow->minimized) {
+					ShowWindow(hWnd, SW_MINIMIZE);
+					wMainWindow->minimized = false;
+				}
 				ShowWindow(hWnd, SW_RESTORE); SetForegroundWindow(hWnd);
 			} else {
 				ShellExecuteW(hWnd, L"open", s2wc(GetProgramDir()),
@@ -329,7 +340,7 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		case ID_MENU_WINDOWMANAGER_RELOAD:
 			SendMessage(hWnd, WM_USER + 20, 13, 0);
 			break;
-		case 0x600+8:  // Apply title
+		case 0x600+0x20:  // Apply title
 			if (wmEvent == BN_CLICKED) {
 				WCHAR tit[2048] = { 0 };
 				GetWindowTextW(wMainWindow->wEditWTitle, tit, 2048);
@@ -549,6 +560,18 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 				EnableWindow(wMainWindow->targetHwnd, enable);
 			}
 			break;
+		case 0x600+11 + 33:
+		{
+			HWND hParent = GetParent(wMainWindow->targetHwnd);
+			if (!hParent || !IsWindow(hParent)) {
+				MessageBoxW(hWnd, (L"Invalid window handle: " + to_wstring(
+					INT_PTR(hParent))).c_str(), NULL, MB_ICONERROR); break;
+			}
+			wMainWindow->targetHwnd = hParent;
+			wMainWindow->UpdateHwndInfo();
+		}
+			break;
+
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -801,6 +824,8 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			SetWindowTextW(wMainWindow->wTextTHwndClass, buf);
 			GetWindowTextW(UnHwnd, buf, 2047);
 			SetWindowTextW(wMainWindow->wEditWTitle, buf);
+			SendMessage(wMainWindow->wCheckEnableWin, BM_SETCHECK,
+				IsWindowEnabled(UnHwnd), 0);
 
 			//SetWindowPos(wMainWindow->_tmp_select_targ, HWND_TOPMOST,
 			//	rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, 0);
@@ -834,16 +859,21 @@ LRESULT Frame_MainWnd::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		}
 		return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
-	case WM_SIZING:
 	case WM_SIZE:
 		if (wParam == SIZE_MINIMIZED) {
-			if (wMainWindow->hide_when_min) ShowWindow(hWnd, 0);
+			if (wMainWindow->hide_when_min) {
+				wMainWindow->minimized = true;
+				ShowWindow(hWnd, 0);
+			}
 			break;
 		}
+	case WM_SIZING:
 		wMainWindow->ResizeControls(hWnd);
 		break;
 	case WM_CLOSE:
 		if (wMainWindow->hide_when_min) return !ShowWindow(hWnd, 0);
+		SetWindowLong(hWnd, GWL_EXSTYLE,
+			GetWindowLong(hWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
 		SendMessageW(hWnd, WM_USER + 4, 0, 0);
 		//return DefWindowProcW(hWnd, message, wParam, lParam);
 		break;
@@ -937,23 +967,21 @@ void Frame_MainWnd::CreateControls(HWND par, HINSTANCE hInst) {
 		WS_TABSTOP | SS_CENTERIMAGE, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
 	wEditWTitle = CreateWindowExA(0, "Edit", "", WS_CHILD | WS_VISIBLE | WS_BORDER |
 		WS_TABSTOP | ES_AUTOHSCROLL, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
-	wButtonApplyTitle = CreateWindowExA(0, "Button", "Apply", WS_CHILD | WS_VISIBLE |
-		/*WS_BORDER | */WS_TABSTOP | BS_FLAT, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
+	/*8*/ wButtonApplyTitle = CreateWindowExA(0, "Button", "Apply", WS_CHILD | WS_VISIBLE |
+		/*WS_BORDER | */WS_TABSTOP | /*BS_FLAT*/0, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
 	wStatic3 = CreateWindowExA(0, "static", "Parent Window: ", WS_CHILD | WS_VISIBLE |
 		WS_TABSTOP | SS_CENTERIMAGE, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
 	wTextParentHwnd = CreateWindowExA(0, "Edit", "", WS_CHILD | WS_VISIBLE | WS_BORDER |
 		WS_TABSTOP | ES_READONLY | ES_AUTOHSCROLL,
 		0, 0, 1, 1, par, ghmenu(), hInst, 0);
 	wButtonSwToParent = CreateWindowExA(0, "Button", "Switch To", WS_CHILD | WS_VISIBLE |
-		/*WS_BORDER |*/ WS_TABSTOP | BS_FLAT,
+		/*WS_BORDER |*/ WS_TABSTOP | /*BS_FLAT*/0,
 		0, 0, 1, 1, par, ghmenu(), hInst, 0);
 	wButtonWinOpt = CreateWindowExA(0, "Button", "Window Options...", WS_CHILD | WS_VISIBLE
 		/*| WS_BORDER */| WS_TABSTOP/* | BS_FLAT */ ,
 		0, 0, 1, 1, par, ghmenu(), hInst, 0);
-	wCheckEnableWin = CreateWindowExA(0, "Button", "", WS_CHILD | WS_VISIBLE |
+	wCheckEnableWin = CreateWindowExA(0, "Button", "EnableWindow", WS_CHILD | WS_VISIBLE |
 		WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
-	wStaticEbWin = CreateWindowExA(0, "static", "EnableWindow", WS_CHILD | WS_VISIBLE |
-		WS_TABSTOP, 0, 0, 1, 1, par, ghmenu(), hInst, 0);
 
 	if (wIconWSelector) {
 		HICON hIcon = (HICON)::LoadImage(ThisInst, MAKEINTRESOURCE
@@ -985,7 +1013,6 @@ void Frame_MainWnd::CreateControls(HWND par, HINSTANCE hInst) {
 		SendMessage(wButtonSwToParent, WM_SETFONT, (WPARAM)hFont, 0);
 		SendMessage(wButtonWinOpt, WM_SETFONT, (WPARAM)hFont, 0);
 		SendMessage(wCheckEnableWin, WM_SETFONT, (WPARAM)hFont, 0);
-		SendMessage(wStaticEbWin, WM_SETFONT, (WPARAM)hFont, 0);
 	}
 
 	ResizeControls(par);
@@ -1010,8 +1037,7 @@ void Frame_MainWnd::ResizeControls(HWND wd) {
 	SetWindowPos(wButtonSwToParent, 0,    w - 100, 78, 90, 24, 0);
 
 	SetWindowPos(wButtonWinOpt,     0,    10, 112, 130, 24, 0);
-	SetWindowPos(wCheckEnableWin,   0,    150, 116, 15, 15, 0);
-	SetWindowPos(wStaticEbWin,      0,    170, 112, 90, 24, 0);
+	SetWindowPos(wCheckEnableWin,   0,    150, 116, 15+90, 15, 0);
 }
 
 void Frame_MainWnd::UpdateHwndInfo() {
@@ -1026,18 +1052,18 @@ void Frame_MainWnd::UpdateHwndInfo() {
 	}
 	EnableWindow(wEditWTitle, TRUE);
 	EnableWindow(wButtonApplyTitle, TRUE);
-	SetWindowTextA(wTextTargetHwnd, to_string((INT_PTR)targetHwnd).c_str());
+	SetWindowTextW(wTextTargetHwnd, to_wstring((INT_PTR)targetHwnd).c_str());
 	WCHAR TitleCache[2048] = { 0 };
 	GetWindowTextW(targetHwnd, TitleCache, 2048);
 	SetWindowTextW(wEditWTitle, TitleCache);
 	GetClassNameW(targetHwnd, TitleCache, 2048);
 	SetWindowTextW(wTextTHwndClass, TitleCache);
-	SendMessage(targetHwnd, BM_SETCHECK, IsWindowEnabled(targetHwnd), 0);
+	SendMessage(wCheckEnableWin, BM_SETCHECK, IsWindowEnabled(targetHwnd), 0);
 	HWND hParent = GetParent(targetHwnd);
 	wstring szParentStr = L"NULL";
 	if (hParent) {
 		szParentStr = L"(" + to_wstring(UINT_PTR(hParent)) + L") [";
-		GetWindowTextW(targetHwnd, TitleCache, 2048);
+		GetWindowTextW(hParent, TitleCache, 2048);
 		szParentStr += TitleCache;
 		szParentStr += L"] Class:[";
 		GetClassNameW(hParent, TitleCache, 2048);
@@ -1045,6 +1071,10 @@ void Frame_MainWnd::UpdateHwndInfo() {
 		szParentStr += L"]";
 	}
 	SetWindowTextW(wTextParentHwnd, szParentStr.c_str());
+	if (IsHungAppWindow(targetHwnd)) {
+		SetWindowTextW(wTextTargetHwnd, (to_wstring(
+			(INT_PTR)targetHwnd) + L" (hung window)").c_str());
+	}
 
 	DWORD pid = 0; GetWindowThreadProcessId(targetHwnd, &pid);
 	HMENU hMenu = GetMenu(hWnd);
@@ -1078,7 +1108,8 @@ void Frame_MainWnd::setAttribute(UINT attr, INT_PTR value) {
 	(*(((INT_PTR*)&attributes) + attr)) = value;
 }
 
-VOID Frame_MainWnd::TimerProc_WindowSelect(HWND hw, UINT, UINT_PTR id, DWORD) {
+VOID CALLBACK Frame_MainWnd::TimerProc_WindowSelect
+(HWND hw, UINT, UINT_PTR id, DWORD) {
 	//KillTimer(hw, id);
 	//while (wMainWindow->m_lBtnDowned) {
 	//	POINT pnt;
@@ -1147,7 +1178,7 @@ ATOM Frame_MainWnd::ClassRegister_selector_background() {
 #pragma warning(pop)
 }
 
-LRESULT Frame_MainWnd::WndProc_selector_background
+LRESULT CALLBACK Frame_MainWnd::WndProc_selector_background
 (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	case WM_CREATE:
@@ -1191,7 +1222,8 @@ LRESULT Frame_MainWnd::WndProc_selector_background
 }
 #endif
 
-LRESULT WndProc_WindowFindDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+INT_PTR CALLBACK WndProc_WindowFindDlg(
+	HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	//case WM_INITDIALOG:
 	//{	HCURSOR hc = LoadCursor(ThisInst, MAKEINTRESOURCE(IDC_CURSOR_WINDOWFINDER));
@@ -1290,7 +1322,7 @@ ATOM Frame_MainWnd::ClassRegister_resizer() {
 #pragma warning(pop)
 }
 
-LRESULT Frame_MainWnd::WndProc_resizer
+LRESULT CALLBACK Frame_MainWnd::WndProc_resizer
 (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	case WM_CREATE:
@@ -1378,7 +1410,7 @@ LRESULT Frame_MainWnd::WndProc_resizer
 	return 0;
 }
 
-LRESULT Frame_MainWnd::WndProc_swpdlg
+INT_PTR CALLBACK Frame_MainWnd::WndProc_swpdlg
 (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	case WM_INITDIALOG:

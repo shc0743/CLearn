@@ -26,7 +26,7 @@ protected:
 	static LRESULT CALLBACK WndProc_selector_background(HWND, UINT, WPARAM, LPARAM);
 	static ATOM ClassRegister_resizer();
 	static LRESULT CALLBACK WndProc_resizer(HWND, UINT, WPARAM, LPARAM);
-	static LRESULT CALLBACK WndProc_swpdlg(HWND, UINT, WPARAM, LPARAM);
+	static INT_PTR CALLBACK WndProc_swpdlg(HWND, UINT, WPARAM, LPARAM);
 
 	HWND hWnd;
 	int nCmdShow;
@@ -49,17 +49,17 @@ protected:
 		wTextParentHwnd,
 		wButtonSwToParent,
 		wButtonWinOpt,
-		wCheckEnableWin,
-		wStaticEbWin;
+		wCheckEnableWin;
 
 	HWND targetHwnd, _tmp_tarhw, _tmp_select_targ, _tmp_resizer;
 	bool hide_when_min, hightlighting;
 	int autorun_type/*0-Disabled 1-User 0x10-System*/;
+	bool minimized;
 
-public:
 	struct attributes_t {
 		INT_PTR noIcon;
 	};
+public:
 	static constexpr UINT A_NOICON = 0;
 	void setAttribute(UINT attr, INT_PTR value);
 protected:

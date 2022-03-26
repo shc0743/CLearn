@@ -6,7 +6,11 @@
 #include "resource.h"
 using namespace std;
 
+#pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+
 int main(int argc, char* argv[]) {
+	AttachConsole(ATTACH_PARENT_PROCESS);
+
 	CmdLineW cl(GetCommandLineW());
 
 	if (argc < 2) {
@@ -20,7 +24,7 @@ int main(int argc, char* argv[]) {
 		if (cl.getopt(L"sub-process")) {
 			if (cl.getopt(L"parent-service", svc_name) != 1)
 				return ERROR_INVALID_PARAMETER;
-			FreeConsole();
+			//FreeConsole();
 			HANDLE hThread_main = CreateThread(NULL, 0, ServiceWorker_sub_process,
 				(PVOID)svc_name.c_str(), CREATE_SUSPENDED, 0);
 			if (!hThread_main) return GetLastError();
@@ -34,7 +38,7 @@ int main(int argc, char* argv[]) {
 		}
 #endif
 		if (cl.getopt(L"consent")) {
-			FreeConsole();
+			//FreeConsole();
 			wstring type, svcname;
 			cl.getopt(L"type", type);
 			cl.getopt(L"svc-name", svcname);
@@ -77,7 +81,7 @@ int main(int argc, char* argv[]) {
 	if (cl.getopt(L"install")) {
 
 		if (cl.getopt(L"ui")) {
-			FreeConsole();
+			//FreeConsole();
 			if (cl.getopt(L"default")) {
 				WCHAR wclass_icon[256]{ 0 };
 				LoadStringW(0, IDS_UI_ICONWND_CLASS, wclass_icon, 255);
@@ -150,7 +154,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (cl.getopt(L"ui")) {
-		FreeConsole();
+		//FreeConsole();
 		STARTUPINFOW si{ 0 };
 		si.cb = sizeof(si);
 		GetStartupInfoW(&si);
@@ -188,7 +192,9 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (cl.getopt(L"UserConsentHelper")) {
-			HANDLE h = CreateThread(0, 0, UserConsentHelperProc, NULL, 0, 0);
+			LPTHREAD_START_ROUTINE lpFunc = UserConsentHelperProc;
+			if (cl.getopt(L"debug")) lpFunc = UserConsentHelperDebug;
+			HANDLE h = CreateThread(0, 0, lpFunc, NULL, 0, 0);
 			if (!h) return GetLastError();
 			DWORD code = 0;
 			WaitForSingleObject(h, INFINITE);
@@ -197,13 +203,13 @@ int main(int argc, char* argv[]) {
 			return (int)code;
 		}
 
-		// @deprecated This UI is deprecated. Please use MFCMyProcCtlUI
-		//// TODO: Create application window
-		/*HWND hwnd_main = CreateDialog(NULL, MAKEINTRESOURCE(
+		//// @deprecated This UI is deprecated. Please use MFCMyProcCtlUI
+		// TODO: Create application window
+		HWND hwnd_main = CreateDialog(NULL, MAKEINTRESOURCE(
 			IDD_DIALOG_UI_MAIN), NULL, WndProc_Dlg_Main);
 		if (!hwnd_main) return GetLastError();
 		CenterWindow(hwnd_main);
-		ShowWindow(hwnd_main, SW_NORMAL);*/
+		ShowWindow(hwnd_main, SW_NORMAL);
 
 		MSG msg{ 0 };
 		while (GetMessage(&msg, 0, 0, 0)) {
