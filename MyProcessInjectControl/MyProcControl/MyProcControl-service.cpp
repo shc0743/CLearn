@@ -158,6 +158,7 @@ void __stdcall ServiceWorker_t::ServiceLaunch(DWORD, LPWSTR*) {
 	UpdateServiceStatus();
 
 	SetCurrentDirectoryW(s2wc(GetProgramInfo().path));
+	EnableAllPrivileges();
 
 	global_SvcObj->SvcStat.dwCheckPoint++;
 	UpdateServiceStatus();
@@ -193,7 +194,88 @@ DWORD __stdcall ServiceWorker_t::srv_core_thread(PVOID) {
 	/*{	BOOLEAN Boolean = NULL;
 		for (ULONG i = 1; i <= 35; ++i)
 		s7::AdjustPrivilege(i, TRUE, FALSE, &Boolean); }*/
-	{ BOOLEAN b = 0; s7::AdjustPrivilege(0x14, 1, 0, &b); }
+	s7::AdjustPrivilege(0x14, 1, 0);
+
+	{
+		WCHAR path_prefix[MAX_PATH + 1]{ 0 };
+		GetTempPathW(MAX_PATH - 14, path_prefix);
+		if (path_prefix[wcslen(path_prefix) - 1] != L'\\')
+			path_prefix[wcslen(path_prefix) - 1] = L'\\';
+		wcscat_s(path_prefix, MAX_PATH - 5, to_wstring(GetCurrentProcessId()).c_str());
+		wcscat_s(path_prefix, MAX_PATH - 1, L"_Temp");
+		global_SvcObj->dll_exp_path_64 = path_prefix + L"64.tmp"s;
+		global_SvcObj->dll_exp_path_86 = path_prefix + L"32.tmp"s;
+		if (!(
+			FreeResFile(IDR_BIN_DLL_EXPORTS_x64, L"BIN",
+				global_SvcObj->dll_exp_path_64) &&
+			FreeResFile(IDR_BIN_DLL_EXPORTS_x86, L"BIN",
+				global_SvcObj->dll_exp_path_86)
+			)) {
+			DWORD err_code = GetLastError();
+			return 1;
+		}
+	}
+
+	/* Uninstaller */ {
+		HKEY hkey = NULL;
+		wstring keyname = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\";
+		keyname += global_SvcObj->ServiceName;
+		LSTATUS stat = 0;
+		if (ERROR_SUCCESS == RegOpenKeyExW(
+			HKEY_LOCAL_MACHINE,	keyname.c_str(), 0, KEY_READ, &hkey
+		)) {
+			RegCloseKey(hkey);
+		} else {
+			if (stat = RegCreateKeyExW(HKEY_LOCAL_MACHINE, keyname.c_str(),
+				0, 0, 0, KEY_ALL_ACCESS, NULL, &hkey, NULL)) {
+				// An error occurred...
+				fprintf(stderr, "[WARN]  Cannot RegCreateKeyExW  \"HKLM\\%s\""
+					" (LSTATUS: %ld)\n", ws2c(keyname), stat);
+			} else {
+				wstring data_buffer;
+
+				SC_HANDLE scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+				if (scm) {
+					SC_HANDLE sc = OpenServiceW(scm,
+						global_SvcObj->ServiceName, SERVICE_QUERY_CONFIG);
+					if (sc) {
+						DWORD dword = 0, cbBufSize = 0;
+						LPQUERY_SERVICE_CONFIGW lpsc = NULL;
+						if (!QueryServiceConfigW(sc, NULL, 0, &dword)) 
+						if (ERROR_INSUFFICIENT_BUFFER == GetLastError()) {
+							cbBufSize = dword;
+							lpsc = (LPQUERY_SERVICE_CONFIGW)
+								LocalAlloc(LMEM_FIXED, cbBufSize);
+							if (lpsc) {
+
+								if (QueryServiceConfigW(sc, lpsc, cbBufSize, &dword)) {
+									RegSetKeyValueW(hkey, L"", L"DisplayName", REG_SZ,
+										lpsc->lpDisplayName,
+										(DWORD)wcslen(lpsc->lpDisplayName) * 2);
+								}
+								LocalFree(lpsc);
+							}
+						}
+						CloseServiceHandle(sc);
+					}
+					CloseServiceHandle(scm);
+				}
+
+				data_buffer = L"\"" + s2ws(GetProgramDir()) + L"\" --ui --uninstall"
+					" --service-name=\"" + global_SvcObj->ServiceName + L"\"";
+				RegSetKeyValueW(hkey, L"", L"UninstallString", REG_SZ,
+					data_buffer.c_str(), (DWORD)data_buffer.length() * 2 + 2);
+
+				DWORD data_buffer_2 = 1;
+				RegSetKeyValueW(hkey, L"", L"NoModify", REG_DWORD,
+					&data_buffer_2, sizeof(DWORD));
+				RegSetKeyValueW(hkey, L"", L"NoRepair", REG_DWORD,
+					&data_buffer_2, sizeof(DWORD));
+
+				RegCloseKey(hkey);
+			}
+		}
+	}
 
 	/* Sub process handler */
 
@@ -225,6 +307,31 @@ DWORD __stdcall ServiceWorker_sub_process(PVOID sc_name_UNICODE) {
 	return 0;
 }
 
+#if 0
+typedef struct {
+	DWORD cb;
+	WCHAR load_dll_path[MAX_PATH];
+	CHAR proc_name[64];
+} RemoteLoadWorker_t, * pRemoteLoadWorker_t;
+static DWORD WINAPI RemoteLoadWorker(pRemoteLoadWorker_t info) {
+#if 0
+	HMODULE hMod = LoadLibraryW(info->load_dll_path);
+	if (!hMod) return GetLastError();
+	FARPROC proc = GetProcAddress(hMod, info->proc_name);
+	if (!proc) {
+		FreeLibrary(hMod);
+		return ERROR_FILE_NOT_FOUND;
+	}
+	return (DWORD)proc();
+#else
+	return 0;
+#endif
+	ExitThread(0);
+	return 0;
+}
+static void _f_do_nothing (void) {}
+#endif
+
 DWORD __stdcall ServiceWorker_t::SubProcessThread(PVOID) {
 	time_t last_failed_time = 0, _last_failed_time_2 = 0;
 	//HANDLE hPipeIn = NULL, hPipeOut = NULL;
@@ -233,41 +340,14 @@ DWORD __stdcall ServiceWorker_t::SubProcessThread(PVOID) {
 	PROCESS_INFORMATION pi{ 0 };
 	WCHAR module_name[512]{ 0 };
 	//GetModuleFileNameW(GetModuleHandle(NULL), module_name, 511);
-	if (!GetSystemDirectoryW(module_name, (512 - 16))) return 1;
-	wcscat_s(module_name, L"\\winlogon.exe");
+	//if (!GetSystemDirectoryW(module_name, (512 - 16))) return 1;
+	//wcscat_s(module_name, L"\\winlogon.exe");
+	wcscpy_s(module_name, s2wc(GetProgramDir()));
 	WCHAR cmd_line[2048]{ 0 };
-	wstring wsCmdLine = L"\""s + module_name + L"\" --service=\"" +
-		global_SvcObj->ServiceName + L"\" --pid=" + to_wstring(GetCurrentProcessId());
+	wstring wsCmdLine = L"Service_Sub_Process --type=service-sub-process "
+		"--service=\""s + global_SvcObj->ServiceName +
+		L"\" --pid=" + to_wstring(GetCurrentProcessId());
 	wcscpy_s(cmd_line, wsCmdLine.c_str());
-	WCHAR dll_output[512]{ 0 };
-	{
-		GetTempPathW(MAX_PATH - 14, dll_output);
-		if (dll_output[wcslen(dll_output) - 1] == L'\\')
-			dll_output[wcslen(dll_output) - 1] = 0;
-		bool isWow64 = false;
-		DWORD res_type = IDR_BIN_CONTROLLER32;
-		HMODULE kernel32 = GetModuleHandle(_T("kernel32.dll"));
-		if (!kernel32) return 1;
-		isWow64 = (bool)GetProcAddress(kernel32, "IsWow64Process");
-		if (isWow64) {
-			wcscat_s(dll_output, MAX_PATH - 13, L"\\MyProcControl.CONTROLLER.x64.");
-			res_type = IDR_BIN_CONTROLLER64;
-		} else {
-			wcscat_s(dll_output, MAX_PATH - 13, L"\\MyProcControl.CONTROLLER.x86.");
-		}
-		wcscat_s(dll_output, MAX_PATH - 5, to_wstring(GetCurrentProcessId()).c_str());
-		wcscat_s(dll_output, MAX_PATH - 1, L".dll");
-		if (!FreeResFile(res_type, "BIN", dll_output)) {
-			DWORD err_code = GetLastError();
-			return 1;
-		}
-	}
-	//SECURITY_ATTRIBUTES sa{ 0 };
-	//sa.nLength = sizeof(sa);
-	//sa.bInheritHandle = TRUE;
-	//PSTR pipe_buffer = (PSTR)VirtualAlloc(NULL,
-	//	4096 * sizeof(CHAR), MEM_COMMIT, PAGE_READWRITE);
-	//if (!pipe_buffer) return 1;
 	while (1) {
 		//if (!CreatePipe(&hPipeIn, &hPipeOut, &sa, 4096)) return 1;
 		//si.hStdInput = hPipeIn;
@@ -284,14 +364,16 @@ DWORD __stdcall ServiceWorker_t::SubProcessThread(PVOID) {
 		}
 		CloseHandle(pi.hThread);
 		global_SvcObj->hSubProcess = pi.hProcess;
+		Process.resume(pi.hProcess);
+#if 0
 		//Process.resume(pi.hProcess);
-		HMODULE mod = InjectDllToProcess_HANDLE(pi.hProcess, dll_output);
-		if (!mod) {
-			TerminateProcess(pi.hProcess, 1);
-			CloseHandle(pi.hProcess);
-			global_SvcObj->hSubProcess = NULL;
-			return 1;
-		}
+		//HMODULE mod = InjectDllToProcess_HANDLE(pi.hProcess, path_prefix);
+		//if (!mod) {
+		//	TerminateProcess(pi.hProcess, 1);
+		//	CloseHandle(pi.hProcess);
+		//	global_SvcObj->hSubProcess = NULL;
+		//	return 1;
+		//}
 		//VirtualFreeEx(pi.hProcess, baseaddr, 0, MEM_RELEASE);
 		//LPTHREAD_START_ROUTINE pRemoteFuncAddr = (LPTHREAD_START_ROUTINE)
 		//	GetProcAddress(mod, "ServiceWorker_subpentry");
@@ -303,6 +385,60 @@ DWORD __stdcall ServiceWorker_t::SubProcessThread(PVOID) {
 		//		CloseHandle(hRemoteTrd);
 		//	}
 		//}
+		SIZE_T nSize = 0;
+		auto fail = [&pi] (int nBreak = 0) {
+			//DWORD d = 0;
+			//WTSSendMessage(0, WTSGetActiveConsoleSessionId(),
+			//(LPWSTR)to_wstring(nBreak).c_str(),
+			//DWORD(to_wstring(nBreak).length()*2),
+			//(LPWSTR)L"died", 8, 0x10, 0, &d, 1);
+			TerminateProcess(pi.hProcess, 1);
+			CloseHandle(pi.hProcess);
+			global_SvcObj->hSubProcess = NULL;
+			return 1;
+		};
+		DWORD nCodeSize = 1024;// DWORD((PBYTE)RemoteLoadWorker - (PBYTE)_f_do_nothing);
+		PVOID pRemoteAddr = VirtualAllocEx(pi.hProcess, NULL,
+			nCodeSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+		if (!pRemoteAddr) return fail(1);
+		//WTSSendMessage(0, WTSGetActiveConsoleSessionId(), (LPWSTR)to_wstring
+		//(nCodeSize).c_str(), DWORD(to_wstring(nCodeSize).length()*2), 
+		//(LPWSTR)L"nCodeSize", 18, 0, 0, (PDWORD) & nSize, 1);
+		if (!WriteProcessMemory(pi.hProcess, pRemoteAddr,
+			RemoteLoadWorker, nCodeSize, &nSize)) return fail(2);
+		//VirtualProtectEx(pi.hProcess, pRemoteAddr, nCodeSize,
+		//	PAGE_EXECUTE_READ, (PDWORD)&nSize);
+
+		RemoteLoadWorker_t rlw{ 0 };
+		rlw.cb = sizeof(rlw);
+#ifdef _WIN64
+		wcscpy_s(rlw.load_dll_path, global_SvcObj->dll_exp_path_64.c_str());
+#else
+		wcscpy_s(rlw.load_dll_path, global_SvcObj->dll_exp_path_86.c_str());
+#endif
+		strcpy_s(rlw.proc_name, "MExecutionServiceSubProcess");
+		//DWORD d = 0;
+		//WTSSendMessage(0, WTSGetActiveConsoleSessionId(), (LPWSTR)L"debug",
+		//10, rlw.load_dll_path, (DWORD)wcslen(rlw.load_dll_path)*2, 0, 0, &d, 1);
+		PVOID pRemoteData = VirtualAllocEx(pi.hProcess, NULL,
+			sizeof(RemoteLoadWorker_t), MEM_COMMIT, PAGE_READWRITE);
+		if (!pRemoteData) return fail(3);
+		WriteProcessMemory(pi.hProcess, pRemoteData, &rlw, sizeof(rlw), &nSize);
+		VirtualProtectEx(pi.hProcess, pRemoteAddr, sizeof(RemoteLoadWorker_t),
+			PAGE_READONLY, (PDWORD)&nSize);
+
+		HANDLE hRemoteThread = NULL;
+		hRemoteThread = CreateRemoteThread(pi.hProcess, 0, 0,
+			(LPTHREAD_START_ROUTINE)pRemoteAddr, pRemoteData, CREATE_SUSPENDED, 0);
+		if (!hRemoteThread) return fail(4);
+		DWORD code = 1;
+		ResumeThread(hRemoteThread);
+		WaitForSingleObject(hRemoteThread, INFINITE);
+		GetExitCodeThread(hRemoteThread, &code);
+		CloseHandle(hRemoteThread);
+		if (code != 0) { fail(5); continue; }
+#endif
+
 
 		WaitForSingleObject(pi.hProcess, INFINITE);
 		CloseHandle(pi.hProcess);
@@ -400,9 +536,9 @@ DWORD __stdcall ServiceWorker_t::SvcCtlPipeThread(PVOID) {
 		while (1) {
 			ConnectNamedPipe(pipe, 0);
 			while (ReadFile(pipe, buffer, 4096, 0, 0)) {
-				fstream fp(""s + tmpPath + "\\TEMP." +
-					ws2s(global_SvcObj->ServiceName) + ".pipe.log", ios::app);
-				fp << "pipe received: " << buffer << endl;
+				//fstream fp(""s + tmpPath + "\\TEMP." +
+				//	ws2s(global_SvcObj->ServiceName) + ".pipe.log", ios::app);
+				//fp << "pipe received: " << buffer << endl;
 				if (string(buffer).find("Service Stop user_confirm") == 0) {
 					//fp << "UserServiceControlConfirm ";
 					//int vl = 
@@ -417,7 +553,7 @@ DWORD __stdcall ServiceWorker_t::SvcCtlPipeThread(PVOID) {
 				//if (string(buffer).find("Service Resume user_confirm") == 0) {
 				//	ServiceManager.Continue(ws2s(global_SvcObj->ServiceName));
 				//}
-				fp.close();
+				//fp.close();
 			}
 			DisconnectNamedPipe(pipe);
 		}
@@ -605,27 +741,8 @@ DWORD __stdcall ServiceWorker_t::StoppingThrd(PVOID arg) {
 	global_SvcObj->SvcStat.dwCheckPoint++;
 	UpdateServiceStatus();
 
-	{
-		WCHAR dll_output[MAX_PATH + 32]{ 0 };
-		GetTempPathW(MAX_PATH - 14, dll_output);
-		if (dll_output[wcslen(dll_output) - 1] == L'\\')
-			dll_output[wcslen(dll_output) - 1] = 0;
-		bool isWow64 = false;
-		DWORD res_type = IDR_BIN_CONTROLLER32;
-		HMODULE kernel32 = GetModuleHandle(_T("kernel32.dll"));
-		if (!kernel32) return 1;
-		isWow64 = (bool)GetProcAddress(kernel32, "IsWow64Process");
-		if (isWow64) {
-			wcscat_s(dll_output, MAX_PATH - 13, L"\\MyProcControl.CONTROLLER.x64.");
-			res_type = IDR_BIN_CONTROLLER64;
-		}
-		else {
-			wcscat_s(dll_output, MAX_PATH - 13, L"\\MyProcControl.CONTROLLER.x86.");
-		}
-		wcscat_s(dll_output, MAX_PATH - 5, to_wstring(GetCurrentProcessId()).c_str());
-		wcscat_s(dll_output, MAX_PATH - 1, L".dll");
-		DeleteFileW(dll_output);
-	}
+	DeleteFileW(global_SvcObj->dll_exp_path_64.c_str());
+	DeleteFileW(global_SvcObj->dll_exp_path_86.c_str());
 	global_SvcObj->SvcStat.dwCheckPoint++;
 	UpdateServiceStatus();
 
@@ -655,7 +772,8 @@ void ServiceWorker_t::End_UI_Process() {
 	WCHAR cmd_line[512]{ 0 };
 	wcscpy_s(cmd_line, s_cmd_line.c_str());
 
-	if (Process.StartAsActiveUserT(app_name.c_str(), cmd_line,
+	if (CreateProcessInSession(WTSGetActiveConsoleSessionId(),
+		app_name.c_str(), cmd_line,
 		0, 0, 0, 0, 0, 0, &si, &pi)) {
 		CloseHandle(pi.hThread);
 		CloseHandle(pi.hProcess);

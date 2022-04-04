@@ -13,8 +13,8 @@
     <ClCompile Include="..\..\resource\tool.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
-    <ClCompile Include="service_worker.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\utils\inject.c">
+      <Filter>injector</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -26,6 +26,9 @@
     </ClInclude>
     <ClInclude Include="..\..\resource\tool.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\inject.h">
+      <Filter>injector</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -40,6 +43,9 @@
     </Filter>
     <Filter Include="utils">
       <UniqueIdentifier>{0da89f75-ebcf-4fac-9aac-971cb9b266eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="injector">
+      <UniqueIdentifier>{1d70be12-253d-4667-96e6-34e0159419c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

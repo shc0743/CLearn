@@ -3,26 +3,29 @@
 #include <AclAPI.h>
 #include "../../resource/tool.h"
 
-#define DLL_INJECT_WORKER_PSNAME "winlogon.exe"
+//#define DLL_INJECT_WORKER_PSNAME "winlogon.exe"
+HMODULE hInst;
 
 DWORD WINAPI ProcCtrl_MainThread(PVOID hDllModule);
 bool MyProtectWinObject(HANDLE hObject);
-DWORD __stdcall ServiceWorker_subpentry(PVOID);
+//DWORD __stdcall ServiceWorker_subpentry(PVOID);
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
                      )
 {
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
+    //switch (ul_reason_for_call)
+    //{
+    //case DLL_PROCESS_ATTACH:
+    //case DLL_THREAD_ATTACH:
+    //case DLL_THREAD_DETACH:
+    //case DLL_PROCESS_DETACH:
+    //    break;
+    //}
     if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+        ::hInst = hModule;
+#if 0
 		if (GetProgramInfo().name == DLL_INJECT_WORKER_PSNAME) {
             WCHAR SystemPath[MAX_PATH + 32]{ 0 };
             GetSystemDirectoryW(SystemPath, MAX_PATH);
@@ -38,6 +41,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                 }
             }
 		}
+#endif
 
         HANDLE hThread = CreateThread(NULL, 0, ProcCtrl_MainThread,
             hModule, CREATE_SUSPENDED, NULL);

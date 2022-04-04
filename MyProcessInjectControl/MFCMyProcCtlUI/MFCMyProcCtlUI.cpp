@@ -78,9 +78,18 @@ BOOL CMFCMyProcCtlUIApp::InitInstance()
 	wcex.lpszClassName = L"Window.class.MyProcControl.MFC.Wnd.main#32770";
 	s7::MyRegisterClassW(0, 0, wcex);
 
-	CMFCMyProcCtlUIDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();
+	CmdLineA cl(GetCommandLineA());
+
+	CDialogEx* dlg = nullptr;
+	if (cl.argc() > 1 && 0 == _stricmp("/about", cl[1].c_str())) {
+		dlg = new CAboutDlg;
+	}
+	if (dlg == nullptr) {
+		dlg = new CMFCMyProcCtlUIDlg;
+	}
+	m_pMainWnd = dlg;
+	INT_PTR nResponse = dlg->DoModal();
+	delete dlg;
 	if (nResponse == IDOK)
 	{
 		// TODO: 在此放置处理何时用

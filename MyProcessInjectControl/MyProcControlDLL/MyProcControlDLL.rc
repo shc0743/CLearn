@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// resources
+// 非特定语言(默认值) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
@@ -39,7 +39,7 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "00000000"//"080404b0"
+        BLOCK "00000000"
         BEGIN
             VALUE "CompanyName", "shc0743"
             VALUE "FileDescription", "My Process Control (DLL)"
@@ -53,20 +53,10 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x0, 0//0x804, 1200
+        VALUE "Translation", 0x0, 0
     END
 END
 
-#endif    // resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
-LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
-#pragma code_page(936)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -93,7 +83,20 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-#endif    // resources
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_STRING_APP_UUID     "f758402c-68fc-4ef5-86f1-fb5a0e56a2d5"
+    IDS_STRING_APP_GUID     "{2FE5CE6D-D851-4C66-B4FF-EDE84D1EA46B}"
+    IDS_STRING_SVC_PIPENAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control\\CtrlManage"
+END
+
+#endif    // 非特定语言(默认值) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

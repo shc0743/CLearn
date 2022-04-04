@@ -13,10 +13,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyProcControlDLL", "MyProcC
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyProcControl", "MyProcControl\MyProcControl.vcxproj", "{1FCEFD6A-15E1-42F5-8333-73123CF7E3B5}"
 	ProjectSection(ProjectDependencies) = postProject
-		{6946A631-B2A4-4CFC-A9B5-D0F20E5FCAC9} = {6946A631-B2A4-4CFC-A9B5-D0F20E5FCAC9}
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC} = {68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MFCMyProcCtlUI", "MFCMyProcCtlUI\MFCMyProcCtlUI.vcxproj", "{4B2927BD-5404-4552-BCE8-EDB6F2688BD5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyProcControlExports", "MyProcControlExports\MyProcControlExports.vcxproj", "{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -74,6 +76,14 @@ Global
 		{4B2927BD-5404-4552-BCE8-EDB6F2688BD5}.Release|x64.Build.0 = Release|x64
 		{4B2927BD-5404-4552-BCE8-EDB6F2688BD5}.Release|x86.ActiveCfg = Release|Win32
 		{4B2927BD-5404-4552-BCE8-EDB6F2688BD5}.Release|x86.Build.0 = Release|Win32
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Debug|x64.ActiveCfg = Debug|x64
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Debug|x64.Build.0 = Debug|x64
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Debug|x86.ActiveCfg = Debug|Win32
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Debug|x86.Build.0 = Debug|Win32
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Release|x64.ActiveCfg = Release|x64
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Release|x64.Build.0 = Release|x64
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Release|x86.ActiveCfg = Release|Win32
+		{68AB7011-BC99-4CCA-9E0E-4D2DC9E5E3AC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

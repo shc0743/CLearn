@@ -110,6 +110,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>uafxcw.lib;LIBCMT.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCMT.lib;uafxcw.lib;</IgnoreSpecificDefaultLibraries>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -184,6 +185,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>uafxcw.lib;LIBCMT.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCMT.lib;uafxcw.lib;</IgnoreSpecificDefaultLibraries>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

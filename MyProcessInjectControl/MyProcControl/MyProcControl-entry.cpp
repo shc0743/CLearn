@@ -9,7 +9,7 @@ using namespace std;
 #pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
 
 int main(int argc, char* argv[]) {
-	AttachConsole(ATTACH_PARENT_PROCESS);
+	//AttachConsole(ATTACH_PARENT_PROCESS);
 
 	CmdLineW cl(GetCommandLineW());
 
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (cl.getopt(L"service")) {
-		wstring svc_name;
+		wstring svc_name, type;
 #if 0
 		if (cl.getopt(L"sub-process")) {
 			if (cl.getopt(L"parent-service", svc_name) != 1)
@@ -39,6 +39,30 @@ int main(int argc, char* argv[]) {
 #endif
 		if (cl.getopt(L"consent")) {
 			//FreeConsole();
+			WCHAR deskname[256]{ 0 };
+			LoadString(NULL, IDS_SVC_SECDESK_NAME, deskname, 255);
+			if (cl.getopt(L"desktop-helper")) {
+				WCHAR cln[256]{ 0 };
+				LoadString(NULL, IDS_UI_DESKHELP_CLASS, cln, 255);
+				HDESK hdesk = CreateDesktopW(deskname, NULL, NULL, 0, GENERIC_ALL, NULL);
+				if (!hdesk) return 1;
+				SetThreadDesktop(hdesk);
+				CloseDesktop(hdesk);
+				s7::MyRegisterClassW(cln, WndProc_DesktopHelper);
+				HWND hw = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, cln,
+					L"Desktop Helper", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+					340, 100, 0, 0, 0, 0);
+				if (!hw) return GetLastError();
+				ShowWindow(hw, SW_NORMAL);
+
+				MSG msg{ 0 };
+				while (GetMessage(&msg, 0, 0, 0)) {
+					DispatchMessage(&msg);
+					TranslateMessage(&msg);
+				}
+				return (int)msg.wParam;
+			}
+
 			wstring type, svcname;
 			cl.getopt(L"type", type);
 			cl.getopt(L"svc-name", svcname);
@@ -54,6 +78,21 @@ int main(int argc, char* argv[]) {
 			if (!cl.getopt(L"notimeout")) text +=
 				L"\n\n\n* The default operation will be choose after 5 seconds.";
 			RegClass_BackgroundLayeredAlphaWindowClass();
+			HDESK oldDesk = GetThreadDesktop(GetCurrentThreadId());
+			HDESK hdesk = CreateDesktopW(deskname, NULL, NULL, 0, GENERIC_ALL, NULL);
+			if (hdesk) {
+				SetThreadDesktop(hdesk);
+				SwitchDesktop(hdesk);
+				CloseDesktop(hdesk);
+			}
+			{
+				TCHAR cln[256]{ 0 };
+				LoadString(NULL, IDS_UI_DESKHELP_CLASS, cln, 255);
+				if (FindWindow(cln, NULL) == NULL) {
+					Process.StartOnly(to__str("\"" + GetProgramDir() +
+						"\" --service --consent --desktop-helper"));
+				}
+			}
 			//MessageBoxW(NULL, LastErrorStrW().c_str(), 0, 0);
 			HWND hwnd_backg = CreateWindowExW(WS_EX_LAYERED,
 				L"BackgroundLayeredAlphaWindowClass", L"",
@@ -66,8 +105,19 @@ int main(int argc, char* argv[]) {
 				MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING | MB_SETFOREGROUND | MB_SYSTEMMODAL
 				, 0, cl.getopt(L"notimeout") ? 0 : 5000);
 			DestroyWindow(hwnd_backg);
+			SwitchDesktop(oldDesk);
 			return -val;
 			return ERROR_INVALID_PARAMETER;
+		}
+		if (cl.getopt(L"type", type) == 1) {
+			if (type == L"service-sub-process") {
+				HANDLE hthread = CreateThread(0, 0, ServiceWorker_subpentry, 0, 0, 0);
+				if (!hthread) return GetLastError();
+				DWORD code = 1;
+				WaitForSingleObject(hthread, INFINITE);
+				GetExitCodeThread(hthread, &code);
+				return (int)code;
+			}
 		}
 		if (cl.getopt(L"run-svc-name", svc_name) != 1)
 			return ERROR_INVALID_PARAMETER;
@@ -102,7 +152,7 @@ int main(int argc, char* argv[]) {
 			s7::MyRegisterClassW(wclass, WndProc_SetupWindow, wcex2);
 			HWND hwnd = CreateWindowExW(0, wclass, L"MyProcControl Setup",
 				WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-				0, 0, 300, 150, 0, 0, 0, 0);
+				0, 0, 300, 200, 0, 0, 0, 0);
 			if (!hwnd) return 1;
 			CenterWindow(hwnd);
 			ShowWindow(hwnd, SW_NORMAL);
@@ -128,6 +178,7 @@ int main(int argc, char* argv[]) {
 			LoadStringW(NULL, IDS_SVC_DESCRIPTION, desctext, 2047);
 			des_text = desctext;
 		}
+		dsp_name += L" (" + svc_name + L")";
 		wstring cmdl = L"\"" + s2ws(GetProgramDir()) + L"\" --service"
 			" --run-svc-name=\"" + svc_name + L"\"";
 		if (!cfg_path.empty()) cmdl += L" --config=\""s + cfg_path + L"\"";
@@ -153,11 +204,91 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
+	if (cl.getopt(L"uninstall")) {
+		STARTUPINFOW si{ 0 };
+		si.cb = sizeof(si);
+		GetStartupInfoW(&si);
+
+		INITCOMMONCONTROLSEX icce{ 0 };
+		icce.dwSize = sizeof(icce);
+		icce.dwICC = ICC_WIN95_CLASSES;
+		InitCommonControlsEx(&icce);
+
+		wstring svc_name;
+		cl.getopt(L"service-name", svc_name);
+		if (svc_name.empty()) cl.getopt(L"svc-name", svc_name);
+
+		if (svc_name.empty()) return ERROR_INVALID_PARAMETER;
+		if (!IsRunAsAdmin()) {
+			SHELLEXECUTEINFO execinfo{ 0 };
+			wstring lpFile = s2ws(GetProgramDir());
+			execinfo.lpFile = lpFile.c_str();
+			execinfo.cbSize = sizeof(execinfo);
+			execinfo.lpVerb = L"runas";
+			execinfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+			execinfo.nShow = (si.dwFlags & STARTF_USESHOWWINDOW) ?
+								si.wShowWindow : SW_SHOWDEFAULT;
+			wstring szParam;
+			for (size_t i = 1; i < cl.argc(); ++i)
+				szParam += L" \""s + cl[i] + L"\"";
+			execinfo.lpParameters = szParam.c_str();
+			if (!ShellExecuteExW(&execinfo)) return GetLastError();
+			DWORD exitCode = 1;
+			if (execinfo.hProcess) {
+				WaitForSingleObject(execinfo.hProcess, INFINITE);
+				GetExitCodeProcess(execinfo.hProcess, &exitCode);
+				CloseHandle(execinfo.hProcess);
+			}
+			return exitCode;
+		}
+		WCHAR wclass[256]{ 0 };
+		LoadStringW(0, IDS_UI_UNINST_CLASS, wclass, 255);
+		s7::MyRegisterClassW(wclass, WndProc_UninstWindow);
+		//RegClass_BackgroundLayeredAlphaWindowClass();
+		//HWND hwnd_backg = CreateWindowExW(WS_EX_NOACTIVATE,
+		//	L"BackgroundLayeredAlphaWindowClass", L"",
+		//	WS_OVERLAPPED, 0, 0, 1, 1, 0, 0, 0, 0);
+		HWND hwnd = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_TOPMOST, wclass,
+			(L"Uninstall " + svc_name).c_str(), WS_POPUP |
+			WS_SYSMENU | WS_DLGFRAME, 0, 0, 500, 300, 0, 0, 0, 0);
+		if (!hwnd) return GetLastError();
+		SendMessage(hwnd, WM_USER + 3, (WPARAM)(INT_PTR)svc_name.c_str(), 0);
+		//EnableWindow(hwnd_backg, FALSE);
+		//SetParent(hwnd, hwnd_backg);
+		//ShowWindow(hwnd_backg, SW_NORMAL);
+		if (cl.getopt(L"ui"))
+			ShowWindow(hwnd, (si.dwFlags & STARTF_USESHOWWINDOW) ?
+				si.wShowWindow : SW_NORMAL);
+		CenterWindow(hwnd);
+
+		if (cl.getopt(L"delete-all")) {
+			SendMessage(hwnd, WM_USER + 3, 1, 3);
+		}
+
+		if (cl.getopt(L"slient") || 0 == cl.getopt(L"ui")) {
+			SendMessage(hwnd, WM_USER + 3, 1, 2);
+			SendMessage(hwnd, WM_COMMAND, IDOK, 0);
+		}
+
+		MSG msg{ 0 };
+		while (GetMessage(&msg, 0, 0, 0)) {
+			DispatchMessage(&msg);
+			TranslateMessage(&msg);
+		}
+		//DestroyWindow(hwnd_backg);
+		return (int)msg.wParam;
+	}
+
 	if (cl.getopt(L"ui")) {
 		//FreeConsole();
 		STARTUPINFOW si{ 0 };
 		si.cb = sizeof(si);
 		GetStartupInfoW(&si);
+
+		INITCOMMONCONTROLSEX icce{ 0 };
+		icce.dwSize = sizeof(icce);
+		icce.dwICC = ICC_WIN95_CLASSES;
+		InitCommonControlsEx(&icce);
 
 		wstring svc_name;
 		cl.getopt(L"service-name", svc_name);
@@ -172,25 +303,6 @@ int main(int argc, char* argv[]) {
 				0, 0, 0, 1, 1, 0, 0, 0, 0);
 		}
 
-		if (((si.dwFlags & STARTF_USESHOWWINDOW) &&
-			(si.wShowWindow == SW_HIDE)) || cl.getopt(L"hidden")) {
-			WCHAR wclass_icon[256]{ 0 };
-			LoadStringW(0, IDS_UI_ICONWND_CLASS, wclass_icon, 255);
-			s7::MyRegisterClassW(wclass_icon, WndProc_TrayIconWindow);
-			HWND hIconWindow = CreateWindowExW(0, wclass_icon, svc_name.empty() ?
-				L"Icon Window" : svc_name.c_str(),
-				0, 0, 0, 1, 1, 0, 0, 0, 0);
-			if (!svc_name.empty()) SendMessage(hIconWindow,
-				WM_USER + 15, (WPARAM)svc_name.c_str(), 0);
-
-			//MSG msg{ 0 };
-			//while (GetMessage(&msg, 0, 0, 0)) {
-			//	DispatchMessage(&msg);
-			//	TranslateMessage(&msg);
-			//}
-			//return (int)msg.wParam;
-		}
-
 		if (cl.getopt(L"UserConsentHelper")) {
 			LPTHREAD_START_ROUTINE lpFunc = UserConsentHelperProc;
 			if (cl.getopt(L"debug")) lpFunc = UserConsentHelperDebug;
@@ -203,13 +315,35 @@ int main(int argc, char* argv[]) {
 			return (int)code;
 		}
 
-		//// @deprecated This UI is deprecated. Please use MFCMyProcCtlUI
-		// TODO: Create application window
-		HWND hwnd_main = CreateDialog(NULL, MAKEINTRESOURCE(
-			IDD_DIALOG_UI_MAIN), NULL, WndProc_Dlg_Main);
-		if (!hwnd_main) return GetLastError();
-		CenterWindow(hwnd_main);
-		ShowWindow(hwnd_main, SW_NORMAL);
+		if (((si.dwFlags & STARTF_USESHOWWINDOW) &&
+			(si.wShowWindow == SW_HIDE)) || cl.getopt(L"hidden")) {
+			WCHAR wclass_icon[256]{ 0 };
+			LoadStringW(0, IDS_UI_ICONWND_CLASS, wclass_icon, 255);
+			s7::MyRegisterClassW(wclass_icon, WndProc_TrayIconWindow);
+			HWND hIconWindow = CreateWindowExW(0, wclass_icon, svc_name.empty() ?
+				L"Icon Window" : svc_name.c_str(),
+				0, 0, 0, 1, 1, 0, 0, 0, 0);
+			if (!svc_name.empty()) SendMessage(hIconWindow,
+				WM_USER + 15, (WPARAM)svc_name.c_str(), 0);
+
+			MSG msg{ 0 };
+			while (GetMessage(&msg, 0, 0, 0)) {
+				DispatchMessage(&msg);
+				TranslateMessage(&msg);
+			}
+			return (int)msg.wParam;
+		}
+
+		////// @deprecated This UI is deprecated. Please use MFCMyProcCtlUI
+		//// TODO: Create application window
+		//HWND hwnd_hidden0 = CreateWindowExW(0, L"#32770", L"",
+		//	0, 0, 0, 1, 1, 0, 0, 0, 0);
+		//HWND hwnd_main = CreateDialog(NULL, MAKEINTRESOURCE(
+		//	IDD_DIALOG_UI_MAIN), hwnd_hidden0, WndProc_Dlg_Main);
+		//if (!hwnd_main) return GetLastError();
+		//SetWindowLongPtr(hwnd_main, DWLP_DLGPROC, (INT_PTR)WndProc_Dlg_Main);
+		//CenterWindow(hwnd_main);
+		//ShowWindow(hwnd_main, SW_NORMAL);
 
 		MSG msg{ 0 };
 		while (GetMessage(&msg, 0, 0, 0)) {
@@ -224,15 +358,46 @@ int main(int argc, char* argv[]) {
 		cl.getopt(L"service-name", svc_name);
 		HWND hWnd_uiproc = NULL;
 		WCHAR wclass[256]{ 0 };
-		LoadString(NULL, IDS_UI_SVCCTLWINDOW_CLASS, wclass, 255);
-		while ((hWnd_uiproc = FindWindowW(wclass,
-			svc_name.empty() ? NULL : svc_name.c_str())) != NULL) {
-			SendMessage(hWnd_uiproc, WM_USER + 44, 0, 0);
-		}
+		DWORD pid = 0;
+		HANDLE hProcess = NULL;
 		LoadString(NULL, IDS_UI_MFCUI_CLASS, wclass, 255);
 		while ((hWnd_uiproc = FindWindowW(wclass, NULL)) != NULL) {
 			SendMessage(hWnd_uiproc, WM_CLOSE, 0, 0);
 		}
+		LoadString(NULL, IDS_UI_SVCCTLWINDOW_CLASS, wclass, 255);
+		while ((hWnd_uiproc = FindWindowW(wclass,
+			svc_name.empty() ? NULL : svc_name.c_str())) != NULL) {
+			SendMessage(hWnd_uiproc, WM_USER + 44, 0, 0);
+			GetWindowThreadProcessId(hWnd_uiproc, &pid);
+			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+			if (hProcess) {
+				WaitForSingleObject(hProcess, 1000);
+				TerminateProcess(hProcess, ERROR_TIMEOUT);
+				CloseHandle(hProcess);
+				hProcess = NULL;
+			}
+		}
+		{WCHAR deskname[256]{ 0 };
+		LoadString(NULL, IDS_SVC_SECDESK_NAME, deskname, 255);
+		HDESK oldDesk = GetThreadDesktop(GetCurrentThreadId());
+		HDESK hdesk = CreateDesktopW(deskname, NULL, NULL, 0, GENERIC_ALL, NULL);
+		if (hdesk) {
+			SetThreadDesktop(hdesk);
+			CloseDesktop(hdesk);
+		}
+		LoadString(NULL, IDS_UI_DESKHELP_CLASS, wclass, 255);
+		while ((hWnd_uiproc = FindWindowW(wclass, NULL)) != NULL) {
+			SendMessage(hWnd_uiproc, WM_CLOSE, 0, 0);
+			GetWindowThreadProcessId(hWnd_uiproc, &pid);
+			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+			if (hProcess) {
+				WaitForSingleObject(hProcess, 1000);
+				TerminateProcess(hProcess, ERROR_TIMEOUT);
+				CloseHandle(hProcess);
+				hProcess = NULL;
+			}
+		}
+		SetThreadDesktop(oldDesk); }
 		return 0;
 	}
 
@@ -242,19 +407,19 @@ int main(int argc, char* argv[]) {
 
 #if 0
 BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
+					   DWORD  ul_reason_for_call,
+					   LPVOID lpReserved
+					 )
 {
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+	switch (ul_reason_for_call)
+	{
+	case DLL_PROCESS_ATTACH:
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
 		if (GetProgramInfo().name == "timeout.exe") {
 			LPTHREAD_START_ROUTINE pRemoteFuncAddr = (LPTHREAD_START_ROUTINE)
 				GetProcAddress(hModule, "ServiceWorker_subpentry");
@@ -267,8 +432,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 				}
 			}
 		}
-    }
-    return TRUE;
+	}
+	return TRUE;
 }
 #endif
 

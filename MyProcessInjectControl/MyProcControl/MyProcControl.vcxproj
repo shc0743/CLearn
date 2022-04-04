@@ -108,7 +108,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_NCONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -142,7 +142,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_NCONSOLE;_WIN64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -162,6 +162,7 @@
     <ClCompile Include="MyProcControl-entry.cpp" />
     <ClCompile Include="MyProcControl-service.cpp" />
     <ClCompile Include="MyProcControl-ui.cpp" />
+    <ClCompile Include="service_subworker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\resource\tool.h" />
@@ -169,13 +170,20 @@
     <ClInclude Include="MyProcControl-service.h" />
     <ClInclude Include="MyProcControl-ui.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MyProcControl.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="icon.ico" />
+    <Image Include="uninst_3.ico" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\dllcache\MyProcControlDLL32.dll" />
     <None Include="..\dllcache\MyProcControlDLL64.dll" />
+    <None Include="..\dllcache\MyProcControlExports32.dll" />
+    <None Include="..\dllcache\MyProcControlExports64.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

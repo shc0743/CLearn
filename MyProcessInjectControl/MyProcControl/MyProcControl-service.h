@@ -40,10 +40,15 @@ protected:
 		hSubProcess,
 		hSubProcessZx,
 		hCtlNamedPipe;
+	//typedef WCHAR FilePath_t[MAX_PATH + 1];
+	std::wstring
+		dll_exp_path_64,
+		dll_exp_path_86;
 };
 
 extern ServiceWorker_t* global_SvcObj;
 
 DWORD WINAPI ServiceWorker_sub_process(PVOID sc_name_UNICODE);
 DWORD WINAPI MyUiWorker_parentWatchdog(PVOID);
+DWORD WINAPI ServiceWorker_subpentry(PVOID);
 

@@ -1,0 +1,15 @@
+LIBRARY
+
+EXPORTS
+	__export__
+
+	MGetVersion
+	MRundInstall
+	
+	util_GenerateVersionId
+	util_VersionIdToInfo
+	util_Is_exe_32_or_64_bit
+
+	base64_encode
+	base64_decode
+

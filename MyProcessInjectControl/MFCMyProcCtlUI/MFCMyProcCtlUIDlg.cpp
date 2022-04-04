@@ -11,27 +11,11 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include <TlHelp32.h>
+#include <string>
+#include "../../resource/tool.h"
+using namespace std;
 
-
-// 用于应用程序“关于”菜单项的 CAboutDlg 对话框
-
-class CAboutDlg : public CDialogEx
-{
-public:
-	CAboutDlg();
-
-// 对话框数据
-#ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
-#endif
-
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-
-// 实现
-protected:
-	DECLARE_MESSAGE_MAP()
-};
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 {
@@ -54,21 +38,80 @@ CMFCMyProcCtlUIDlg::CMFCMyProcCtlUIDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_MFCMYPROCCTLUI_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	hThread_refresh = NULL;
+	//pImageList = new CImageList;
+	//pImageList->Create(32, 32, ILC_COLOR32, 0, 1);
+}
+
+CMFCMyProcCtlUIDlg::~CMFCMyProcCtlUIDlg() {
+	//delete pImageList;
 }
 
 void CMFCMyProcCtlUIDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_LIST_PROCS, m_list_procs);
 }
 
 BEGIN_MESSAGE_MAP(CMFCMyProcCtlUIDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BUTTON_REFRESH_PROCS,
+		&CMFCMyProcCtlUIDlg::OnBnClickedButtonRefreshProcs)
+	ON_BN_CLICKED(IDC_BUTTON_ATTACH_CONTROLLER,
+		&CMFCMyProcCtlUIDlg::OnBnClickedButtonAttachController)
+	ON_BN_CLICKED(IDC_BUTTON_DETACH_CONTROLLER,
+		&CMFCMyProcCtlUIDlg::OnBnClickedButtonDetachController)
 END_MESSAGE_MAP()
 
 
 // CMFCMyProcCtlUIDlg 消息处理程序
+
+DWORD __stdcall CMFCMyProcCtlUIDlg::Thread_RefreshList(PVOID arg) {
+	CMFCMyProcCtlUIDlg* pobj = (CMFCMyProcCtlUIDlg*)arg;
+	if (!pobj) return ERROR_INVALID_PARAMETER;
+
+	pobj->GetDlgItem(IDC_BUTTON_ATTACH_CONTROLLER)->EnableWindow(0);
+	pobj->GetDlgItem(IDC_BUTTON_DETACH_CONTROLLER)->EnableWindow(0);
+	pobj->GetDlgItem(IDC_BUTTON_REFRESH_PROCS)->EnableWindow(0);
+
+	pobj->m_list_procs.DeleteAllItems();
+	HANDLE hsnap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (INVALID_HANDLE_VALUE == hsnap) return false;
+	PROCESSENTRY32 pe = {0};
+	pe.dwSize = sizeof(PROCESSENTRY32);
+	Process32First(hsnap, &pe);
+	int index = 0;
+	do {
+		//HANDLE hProcess = 
+		//	OpenProcess(pe.th32ProcessID, FALSE, PROCESS_QUERY_INFORMATION);
+		//BOOL ok = FALSE;
+		//if (hProcess) {
+		//	TCHAR buffer[2048] = { 0 }; DWORD size = 2047;
+		//	QueryFullProcessImageName(hProcess, 0, buffer, &size);
+		//	CloseHandle(hProcess);
+		//	HMODULE hMod = LoadLibrary(buffer);
+		//	if (hMod) {
+		//		pobj->pImageList->Add(LoadIcon(hMod, IDI_APPLICATION));
+		//		ok = true;
+		//	}
+		//}
+		//if (!ok) {
+		//	pobj->pImageList->Add(LoadIcon(NULL, IDI_APPLICATION));
+		//}
+		pobj->m_list_procs.InsertItem(index, to_wstring(pe.th32ProcessID).c_str());
+		pobj->m_list_procs.SetItemText(index, 1, pe.szExeFile);
+		index++;
+	} while (::Process32Next(hsnap, &pe));
+	::CloseHandle(hsnap);
+
+	pobj->GetDlgItem(IDC_BUTTON_ATTACH_CONTROLLER)->EnableWindow();
+	pobj->GetDlgItem(IDC_BUTTON_DETACH_CONTROLLER)->EnableWindow();
+	pobj->GetDlgItem(IDC_BUTTON_REFRESH_PROCS)->EnableWindow();
+
+	return 0;
+}
 
 BOOL CMFCMyProcCtlUIDlg::OnInitDialog()
 {
@@ -100,6 +143,31 @@ BOOL CMFCMyProcCtlUIDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	m_list_procs.InsertColumn(0, L"PID", 0, 80, 0);
+	m_list_procs.InsertColumn(1, L"Image Name", 0, 200, 0);
+
+	m_list_procs.InsertItem(0, L"Loading");
+	m_list_procs.SetItemText(0, 1, L"Loading datas...");
+
+	//m_list_procs.SetImageList(pImageList, LVSIL_NORMAL);
+
+	CmdLineW cl(GetCommandLineW());
+	if (cl.getopt(L"service-name", ServiceName)) {
+		CString wt;
+		GetWindowText(wt);
+		SetWindowTextW((L"[" + ServiceName + L"] - " + wt.GetBuffer()).c_str());
+	}
+
+	try_create_reflush_thread:
+	hThread_refresh = CreateThread(0, 0, Thread_RefreshList, this, 0, 0);
+	if (hThread_refresh) {
+		CloseHandle(hThread_refresh);
+	} else {
+		if (IDRETRY == MessageBox(L"CANNOT CREATE THREAD",
+			0, MB_ICONHAND | MB_RETRYCANCEL | MB_DEFBUTTON2))
+				goto try_create_reflush_thread;
+		else EndDialog(-1);
+	}
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -153,3 +221,83 @@ HCURSOR CMFCMyProcCtlUIDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CMFCMyProcCtlUIDlg::OnBnClickedButtonRefreshProcs() {
+	try_create_reflush_thread:
+	hThread_refresh = CreateThread(0, 0, Thread_RefreshList, this, 0, 0);
+	if (hThread_refresh) {
+		CloseHandle(hThread_refresh);
+	} else {
+		if (IDRETRY == MessageBox(L"Cannot create thread",
+			0, MB_ICONHAND | MB_RETRYCANCEL | MB_DEFBUTTON2))
+				goto try_create_reflush_thread;
+	}
+}
+
+bool CMFCMyProcCtlUIDlg::CheckAdminPriv() {
+	if (!IsRunAsAdmin()) {
+		if (IDRETRY == MessageBoxW(L"Administrator privileges are required to "
+			"complete this operation.\nClick [Retry] to retry as an administrator.",
+			L"Access is Denied", MB_ICONHAND | MB_RETRYCANCEL)) {
+			if ((INT_PTR)ShellExecuteW(m_hWnd, L"runas", s2wc(GetProgramDir()),
+				(L"/runas "s + GetCommandLineW()).c_str(), 0, 1) > 32)
+				EndDialog(0);
+		}
+		return false;
+	}
+	return true;
+}
+
+
+void CMFCMyProcCtlUIDlg::OnBnClickedButtonAttachController() {
+	if (!CheckAdminPriv()) return;
+	POSITION pos = m_list_procs.GetFirstSelectedItemPosition();
+	if (pos != NULL) {
+		while (pos) {
+			int nItem = m_list_procs.GetNextSelectedItem(pos);
+			// nItem是所选中行的序号 
+			CString text = m_list_procs.GetItemText(nItem, 0);
+			DWORD pid = atol(ws2c(text.GetBuffer()));
+			
+			HANDLE hPipe = NULL;
+			WCHAR pipe_name[256]{ 0 };
+			DWORD tmp = 0;
+			LoadStringW(NULL, IDS_STRING_SVC_CTRLPIPE, pipe_name, 255);
+			wcscat_s(pipe_name, L"\\");
+			wcscat_s(pipe_name, ServiceName.c_str());
+			if (::WaitNamedPipeW(pipe_name, 10000)) {
+#pragma warning(push)
+#pragma warning(disable: 6001)
+				hPipe = ::CreateFileW(pipe_name, GENERIC_WRITE, 0,
+					0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+				if (!hPipe || hPipe == INVALID_HANDLE_VALUE) {
+					MessageBoxW(LastErrorStrW().c_str(), NULL, MB_ICONHAND);
+					break;
+				}
+				string str = "Attach-Process-Control /pid=" + to_string(pid);
+				::WriteFile(hPipe, str.c_str(), (DWORD)str.length(), &tmp, NULL);
+				(VOID)ReadFile(hPipe, pipe_name, 255, &tmp, 0);
+				if (0 == wcscmp(L"0", pipe_name)) {
+					MessageBox(ErrorCodeToString(0).c_str(), 0, MB_ICONINFORMATION);
+				} else {
+					MessageBox((_T("Error: "s) +
+						ErrorCodeToString(atol(ws2s(pipe_name).c_str())) + 
+						TEXT("\nRaw data:") + pipe_name)
+							.c_str(), 0, MB_ICONHAND);
+				}
+				::CloseHandle(hPipe);
+#pragma warning(pop)
+			}
+			else {
+				MessageBoxW(ErrorCodeToStringW(ERROR_TIMEOUT).c_str(), 0, MB_ICONHAND);
+			}
+		}
+	}
+}
+
+
+void CMFCMyProcCtlUIDlg::OnBnClickedButtonDetachController() {
+	if (!CheckAdminPriv()) return;
+
+}

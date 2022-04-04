@@ -177,9 +177,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\utils\inject.c" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="main_thread.cpp" />
-    <ClCompile Include="service_worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\resource\tool.h" />
@@ -187,6 +187,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="..\utils\inject.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

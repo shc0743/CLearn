@@ -25,7 +25,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,2,0,0
+ FILEVERSION 1,2,1,0
  PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
@@ -42,10 +42,10 @@ BEGIN
         BLOCK "040004b0"
         BEGIN
             VALUE "FileDescription", "My Process Control"
-            VALUE "FileVersion", "1.2.0.0"
+            VALUE "FileVersion", "1.2.1.0"
             VALUE "InternalName", "MyProcControl.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2022"
-            VALUE "OriginalFilename", "MyProcCo.exe"
+            VALUE "LegalCopyright", "Open Source"
+            VALUE "OriginalFilename", "MyProcControl.exe"
             VALUE "ProductName", "MyProcControl"
             VALUE "ProductVersion", "1.2.0.0"
         END
@@ -85,12 +85,28 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON_MAIN           ICON                    "icon.ico"
+
+IDI_ICON_UNINST         ICON                    "uninst_3.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // BIN
 //
 
-IDR_BIN_CONTROLLER64    BIN                     "..\\dllcache\\MyProcControlDLL64.dll"
+IDR_BIN_DLL_EXPORTS_x64 BIN                     "../dllcache/MyProcControlExports64.dll"
 
-IDR_BIN_CONTROLLER32    BIN                     "..\\dllcache\\MyProcControlDLL32.dll"
+IDR_BIN_DLL_EXPORTS_x86 BIN                     "../dllcache/MyProcControlExports32.dll"
+
+IDR_BIN_DLL_CTL_x64     BIN                     "../dllcache/MyProcControlDLL64.dll"
+
+IDR_BIN_DLL_CTL_x86     BIN                     "../dllcache/MyProcControlDLL32.dll"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -103,13 +119,22 @@ BEGIN
     IDS_APP_UUID            "cda23b8f-126e-426f-9986-1fa2b94fa4af"
     IDS_APP_GUID            "{F592AF90-14AF-45B6-89C0-E90463A43624}"
     IDS_SVC_DESCRIPTION     "This service receives process control requests and displays the user interface to the user. If the service is stopped, process control cannot be executed. If the service is disabled, any services that explicitly depend on it will fail to start."
-    IDS_UI_SVCCTLWINDOW_CLASS "Window.MyProcControl.Service.Control.Receive"
+    IDS_UI_FILENAME_PREFIX  "MFCMyProcCtlUI"
+    IDS_UI_SVCCTLWINDOW_CLASS 
+                            "Window.class.MyProcControl.Service.Control.Receiver"
     IDS_UI_INSTALL_WND_CLASS "Window.class.MyProcControl.Wnd.Install"
     IDS_UI_ICONWND_CLASS    "Window.class.MyProcControl.Wnd.Icon"
-    IDS_SVC_SVCTL_PIPE_NAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control.Low"
-    IDS_UI_FILENAME_PREFIX  "MFCMyProcCtlUI"
+END
+
+STRINGTABLE
+BEGIN
     IDS_UI_MFCUI_CLASS      "Window.class.MyProcControl.MFC.Wnd.main#32770"
     IDS_UI_UCONSENT_CLASS   "Window.class.MyProcControl.Wnd.consent"
+    IDS_UI_DESKHELP_CLASS   "Window.class.MyProcControl.Wnd.UserDesktopHelper"
+    IDS_UI_UNINST_CLASS     "Window.class.MyProcControl.Wnd.Uninstall"
+    IDS_SVC_SECDESK_NAME    "SecureDesktop##MyProcControl"
+    IDS_SVC_SVCTL_PIPE_NAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control\\Low"
+    IDS_STRING_SVC_PIPENAME "\\\\.\\pipe\\NamedPipe.MyProcControl.Service.Control\\CtrlManage"
 END
 
 #endif    // 非特定语言(默认值) resources
@@ -129,13 +154,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 //
 
 IDD_DIALOG_UI_MAIN DIALOGEX 0, 0, 320, 200
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "MyProcControl User Interface"
 FONT 9, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
     PUSHBUTTON      "&Close",IDCANCEL,257,173,50,14
-    GROUPBOX        "",IDC_STATIC,7,3,306,157
+    GROUPBOX        "",IDC_STATIC,7,7,306,157
     GROUPBOX        "",IDC_STATIC,7,163,306,30
+    CONTROL         "",IDC_LIST_PROCS,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,14,291,137
+    PUSHBUTTON      "Attach Controller (&A)",IDC_BUTTON_ATTACH_CONTROLLER,13,173,80,14
+    PUSHBUTTON      "Detach from Controller (&D)",IDC_BUTTON_DETACH_CONTROLLER,96,173,100,14
 END
 
 

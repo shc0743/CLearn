@@ -8,4 +8,7 @@
     <LocalDebuggerWorkingDirectory>../bin</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup>
+    <RESOURCE_FILE>MFCMyProcCtlUI.rc</RESOURCE_FILE>
+  </PropertyGroup>
 </Project>
