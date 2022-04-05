@@ -94,7 +94,7 @@ LRESULT CALLBACK WndProc_TrayIconWindow
 			if (TrayIconData[hWnd].SvcName[0]) cmdl += 
 				L" --from-service --service-name=\""s +
 				TrayIconData[hWnd].SvcName + L"\"";
-			ShellExecuteW(NULL, L"open", filename,
+			ShellExecuteW(NULL, (wParam == 2) ? L"runas" : L"open", filename,
 				cmdl.c_str(), NULL, SW_NORMAL);
 			break;
 		}
@@ -112,12 +112,17 @@ LRESULT CALLBACK WndProc_TrayIconWindow
 			constexpr size_t IDR_PAUSE = 6;
 			constexpr size_t IDR_RESUME = 7;
 			constexpr size_t IDR_UNINST = 8;
+			constexpr size_t IDR_RUNASUI = 9;
+			constexpr size_t IDR_RPWL = 10;
 			HMENU hIconMenu = CreatePopupMenu();
 			AssertEx_AutoHandle(hIconMenu);
 
 			AppendMenu(hIconMenu, MF_STRING, IDR_OPEN, _T("&Open User Interface"));
+			AppendMenu(hIconMenu, MF_STRING, IDR_RUNASUI, _T("Run&As User Interface"));
 			SetMenuDefaultItem(hIconMenu, IDR_OPEN, FALSE);
 			if (TrayIconData[hWnd].SvcName[0]) {
+				AppendMenu(hIconMenu, MFT_SEPARATOR, 0, 0);
+				AppendMenu(hIconMenu, MF_STRING, IDR_RPWL, _T("Run Program with &Limits"));
 				AppendMenu(hIconMenu, MFT_SEPARATOR, 0, 0);
 				AppendMenu(hIconMenu, MF_STRING, IDR_PAUSE, _T("&Pause control"));
 				AppendMenu(hIconMenu, MF_STRING, IDR_RESUME, _T("&Resume control"));
@@ -125,7 +130,7 @@ LRESULT CALLBACK WndProc_TrayIconWindow
 			AppendMenu(hIconMenu, MFT_SEPARATOR, 0, 0);
 			if (TrayIconData[hWnd].SvcName[0])
 				AppendMenu(hIconMenu, MF_STRING, IDR_CFG, _T("&Config"));
-			AppendMenu(hIconMenu, MF_STRING, IDR_ABOUT, _T("&About"));
+			AppendMenu(hIconMenu, MF_STRING, IDR_ABOUT, _T("A&bout"));
 			if (TrayIconData[hWnd].SvcName[0]) {
 				AppendMenu(hIconMenu, MFT_SEPARATOR, 0, 0);
 				AppendMenu(hIconMenu, MF_STRING, IDR_UNINST, _T("&Uninstall"));
@@ -141,6 +146,16 @@ LRESULT CALLBACK WndProc_TrayIconWindow
 
 			if (resp == IDR_OPEN) {
 				SendMessage(hWnd, msg, 0, WM_LBUTTONUP);
+			}
+			else if (resp == IDR_RUNASUI) {
+				SendMessage(hWnd, msg, 2, WM_LBUTTONUP);
+			}
+			else if (resp == IDR_RPWL) {
+				wstring cmdl = L"--ui --run-program-with-limits";
+				if (TrayIconData[hWnd].SvcName[0]) cmdl +=
+					L" --from-service --service-name=\""s +
+					TrayIconData[hWnd].SvcName + L"\"";
+				ShellExecuteW(NULL, L"open", s2wc(GetProgramDir()), cmdl.c_str(), 0, 1);
 			}
 			else if (resp == IDR_ABOUT || resp == IDR_CFG) {
 				WCHAR filename[MAX_PATH]{ 0 };
@@ -983,7 +998,7 @@ static DWORD WINAPI Uninst_Proc(PVOID _hwnd) {
 			break;
 		}
 		CHAR _filename[MAX_PATH + 1]{ 0 };
-		string cd = GetProgramInfo().path;
+		string cd = GetProgramInfo().path; // this string terminator is  '\\\0'
 		if (cd.empty()) {
 			free(buffer);
 			fp.close();
@@ -995,7 +1010,7 @@ static DWORD WINAPI Uninst_Proc(PVOID _hwnd) {
 #else
 		strcat_s(_filename, "32.exe");
 #endif
-		string uifn = cd + "\\" + _filename;
+		string uifn = cd + _filename;
 		string pself = GetProgramDir();
 		sprintf_s(buffer, 4096,
 			"@echo off\n"
@@ -1272,8 +1287,92 @@ LRESULT CALLBACK WndProc_UninstWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 	return 0;
 }
 
+LRESULT CALLBACK WndProc_RunProgramWithLimits(
+	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
+) {
+	switch (msg) {
+	case WM_CREATE:
+		SetWindowLongPtr(hWnd, GWL_STYLE, (GetWindowLongPtr(hWnd, GWL_STYLE)
+			| WS_POPUP | WS_DLGFRAME ) & ~WS_OVERLAPPED & ~WS_SIZEBOX
+			& ~WS_BORDER & ~WS_MAXIMIZEBOX);
+		SetWindowLongPtr(hWnd, GWL_EXSTYLE, GetWindowLongPtr(hWnd, GWL_EXSTYLE)
+			| WS_EX_LAYERED);
+		SetLayeredWindowAttributes(hWnd, NULL, BYTE((255)*(0.9)), LWA_ALPHA);
+		DragAcceptFiles(hWnd, TRUE);
+		{
+			HWND btn1, btn2;
+			btn1 = CreateWindowExW(0, L"Button", L"or Click here to choose a file",
+				WS_CHILD | WS_VISIBLE | BS_CENTER,
+				10, 40, 222, 40, hWnd, (HMENU)33, 0, 0);
+			btn2 = CreateWindowExW(0, L"Button", L"Close",
+				WS_CHILD | WS_VISIBLE | BS_CENTER,
+				170, 100, 60, 30, hWnd, (HMENU)IDCANCEL, 0, 0);
+			static HFONT fnt = CreateFont(-14, -7, 0, 0, FW_NORMAL, 0, 0, 0,
+				DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+				DEFAULT_QUALITY, FF_DONTCARE, _T("Consolas"));
+			SendMessage(hWnd, WM_SETFONT, (WPARAM)fnt, 0);
+			SendMessage(btn1, WM_SETFONT, (WPARAM)fnt, 0);
+			SendMessage(btn2, WM_SETFONT, (WPARAM)fnt, 0);
+		}
+		break;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDCANCEL) {
+			SendMessage(hWnd, WM_CLOSE, 0, 0);
+			break;
+		}
+		if (LOWORD(wParam) == 33) {
+			WCHAR file[MAX_PATH + 2]{ 0 };
+			OPENFILENAMEW ofn{ 0 };
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = hWnd;
+			ofn.lpstrTitle = L"Open a executable file to run it with limits";
+			ofn.lpstrFile = file;
+			ofn.nMaxFile = MAX_PATH + 1;
+			ofn.lpstrFilter = L"Executable (*.exe;*.com;*.bat;*.cmd;*.scr)\0"
+				"*.exe;*.com;*.bat;*.cmd;*.scr\0All Files (*.*)\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+			if (GetOpenFileNameW(&ofn)) {
+				// TODO: todo
+				MessageBoxW(hWnd, file, L"Info", MB_ICONINFORMATION);
+			}
+			break;
+		}
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+		break;
+
+	case WM_PAINT: {
+		PAINTSTRUCT ps{ 0 };
+		HDC hdc = BeginPaint(hWnd, &ps);
+		TextOutW(hdc, 10, 10, L"Drag a file here to run it with limits.", 39);
+		EndPaint(hWnd, &ps);
+	}
+		break;
+
+	case WM_NCHITTEST:
+		return HTCAPTION;
+		break;
+
+	case WM_CLOSE:
+		SetWindowLongPtr(hWnd, GWL_EXSTYLE, GetWindowLongPtr(hWnd, GWL_EXSTYLE)
+			& ~WS_EX_LAYERED);
+		DestroyWindow(hWnd);
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+
+	default:
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+	return 0;
+}
+
+
 // @deprecated This function is deprecated.
-#if 1
+#if 0
 INT_PTR CALLBACK WndProc_Dlg_Main(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 ) {

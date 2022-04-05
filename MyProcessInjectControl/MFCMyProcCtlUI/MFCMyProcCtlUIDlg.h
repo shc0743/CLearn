@@ -4,6 +4,7 @@
 
 #pragma once
 #include <string>
+#include "../../resource/tool.h"
 
 
 // CMFCMyProcCtlUIDlg 对话框
@@ -27,6 +28,7 @@ public:
 protected:
 	HICON m_hIcon;
 	//CImageList* pImageList;
+	CmdLineW cl;
 	std::wstring ServiceName;
 
 	static DWORD __stdcall Thread_RefreshList(PVOID arg);

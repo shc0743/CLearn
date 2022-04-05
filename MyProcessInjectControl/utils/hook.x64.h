@@ -7,6 +7,6 @@
 #include<Windows.h>
 #endif
 
-BOOL ApiInlineHook(LPCWSTR lpModule, LPCSTR lpFuncName, LPVOID lpFunction);
-BOOL ApiInlineUnHook(LPCWSTR lpModule, LPCSTR lpFuncName);
+BOOL ApiInlineHook(PCWSTR lpModule, PCSTR lpFuncName, PVOID lpFunction);
+BOOL ApiInlineUnHook(PCWSTR lpModule, PCSTR lpFuncName);
 

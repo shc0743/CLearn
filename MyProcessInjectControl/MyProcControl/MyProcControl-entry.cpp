@@ -284,6 +284,8 @@ int main(int argc, char* argv[]) {
 		STARTUPINFOW si{ 0 };
 		si.cb = sizeof(si);
 		GetStartupInfoW(&si);
+		int nCmdShow = (si.dwFlags & STARTF_USESHOWWINDOW) ?
+			si.wShowWindow : SW_NORMAL;
 
 		INITCOMMONCONTROLSEX icce{ 0 };
 		icce.dwSize = sizeof(icce);
@@ -313,6 +315,31 @@ int main(int argc, char* argv[]) {
 			GetExitCodeThread(h, &code);
 			CloseHandle(h);
 			return (int)code;
+		}
+
+		if (cl.getopt(L"run-program-with-limits")) {
+			WCHAR wclass[256]{ 0 };
+			LoadStringW(0, IDS_UI_RPWL_CLASS, wclass, 255);
+			//WNDCLASSEXW wcex{};
+			//wcex.cbSize = sizeof(WNDCLASSEXW);
+			//wcex.hbrBackground = CreateSolidBrush(RGB(170, 170, 170));
+			s7::MyRegisterClassW(wclass, WndProc_RunProgramWithLimits/*, wcex*/);
+			wstring title = L"Run program with limits";
+			if (!svc_name.empty()) title = L"[" + svc_name + L"] - " + title;
+			HWND hwnd = CreateWindowExW(0, wclass, title.c_str(),
+				WS_OVERLAPPEDWINDOW, 0, 0, 250, 150, 0, 0, 0, 0);
+			CenterWindow(hwnd);
+			SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+			ShowWindow(hwnd, nCmdShow);
+
+			MSG msg{ 0 };
+			while (GetMessage(&msg, 0, 0, 0)) {
+				DispatchMessage(&msg);
+				TranslateMessage(&msg);
+			}
+			//UnregisterClassW(wclass, ThisInst);
+			//DeleteObject(wcex.hbrBackground);
+			return (int)msg.wParam;
 		}
 
 		if (((si.dwFlags & STARTF_USESHOWWINDOW) &&
@@ -354,20 +381,14 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (cl.getopt(L"EndUserInterfaceInstances")) {
-		wstring svc_name;
+		wstring svc_name; bool icon_nonly = false;
 		cl.getopt(L"service-name", svc_name);
+		icon_nonly = !(cl.getopt(L"icon-only"));
 		HWND hWnd_uiproc = NULL;
 		WCHAR wclass[256]{ 0 };
 		DWORD pid = 0;
 		HANDLE hProcess = NULL;
-		LoadString(NULL, IDS_UI_MFCUI_CLASS, wclass, 255);
-		while ((hWnd_uiproc = FindWindowW(wclass, NULL)) != NULL) {
-			SendMessage(hWnd_uiproc, WM_CLOSE, 0, 0);
-		}
-		LoadString(NULL, IDS_UI_SVCCTLWINDOW_CLASS, wclass, 255);
-		while ((hWnd_uiproc = FindWindowW(wclass,
-			svc_name.empty() ? NULL : svc_name.c_str())) != NULL) {
-			SendMessage(hWnd_uiproc, WM_USER + 44, 0, 0);
+		auto __sub_02 = [&] {
 			GetWindowThreadProcessId(hWnd_uiproc, &pid);
 			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
 			if (hProcess) {
@@ -376,8 +397,26 @@ int main(int argc, char* argv[]) {
 				CloseHandle(hProcess);
 				hProcess = NULL;
 			}
+		};
+
+		LoadString(NULL, IDS_UI_SVCCTLWINDOW_CLASS, wclass, 255);
+		while ((hWnd_uiproc = FindWindowW(wclass,
+			svc_name.empty() ? NULL : svc_name.c_str())) != NULL) {
+			SendMessage(hWnd_uiproc, WM_USER + 44, 0, 0);
+			__sub_02();
 		}
-		{WCHAR deskname[256]{ 0 };
+
+		if (icon_nonly) {
+			LoadString(NULL, IDS_UI_MFCUI_CLASS, wclass, 255);
+			while ((hWnd_uiproc = FindWindowW(wclass, svc_name.empty() ?
+				NULL : (L"[" + svc_name + L"] - MyProcControl User Interface")
+				.c_str())) != NULL) {
+				SendMessage(hWnd_uiproc, WM_CLOSE, 0, 0);
+				__sub_02();
+			}
+		}
+
+		if (icon_nonly) {WCHAR deskname[256]{ 0 };
 		LoadString(NULL, IDS_SVC_SECDESK_NAME, deskname, 255);
 		HDESK oldDesk = GetThreadDesktop(GetCurrentThreadId());
 		HDESK hdesk = CreateDesktopW(deskname, NULL, NULL, 0, GENERIC_ALL, NULL);
@@ -388,16 +427,10 @@ int main(int argc, char* argv[]) {
 		LoadString(NULL, IDS_UI_DESKHELP_CLASS, wclass, 255);
 		while ((hWnd_uiproc = FindWindowW(wclass, NULL)) != NULL) {
 			SendMessage(hWnd_uiproc, WM_CLOSE, 0, 0);
-			GetWindowThreadProcessId(hWnd_uiproc, &pid);
-			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-			if (hProcess) {
-				WaitForSingleObject(hProcess, 1000);
-				TerminateProcess(hProcess, ERROR_TIMEOUT);
-				CloseHandle(hProcess);
-				hProcess = NULL;
-			}
+			__sub_02();
 		}
 		SetThreadDesktop(oldDesk); }
+
 		return 0;
 	}
 

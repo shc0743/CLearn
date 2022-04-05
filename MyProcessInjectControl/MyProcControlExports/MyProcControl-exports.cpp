@@ -7,15 +7,16 @@ using namespace std;
 extern HMODULE hInst;
 
 
-AppVersion_t util_GenerateVersionId(
+AppVersion_t __stdcall util_GenerateVersionId(
 	AppVersionBit_t v0,
 	AppVersionBit_t v1,
 	AppVersionBit_t v2
 ) {
 	return ((AppVersion_t)v0 << 16) + ((AppVersion_t)v1 << 4) + (v2);
 }
-AppVersionInfo_t util_VersionIdToInfo(AppVersion_t id) {
+AppVersionInfo_t __stdcall util_VersionIdToInfo(AppVersion_t id) {
 	AppVersionInfo_t info{ 0 };
+	MessageBoxW(0, to_wstring((INT_PTR)&info).c_str(), L"test", 0);
 	info.v0 = (id & 0xFF0000) >> 16;
 	info.v1 = (id & 0x00FF00) >> 4;
 	info.v2 = (id & 0x0000FF) >> 0;
@@ -27,7 +28,7 @@ DWORD __stdcall __export__(PVOID) {
 	return 0;
 }
 
-AppVersion_t MGetVersion() {
+AppVersion_t __stdcall MGetVersion() {
 	return util_GenerateVersionId(1, 3, 1);
 }
 
@@ -103,39 +104,40 @@ return 32   32bit
 return 64   64bit
 */
 unsigned char __stdcall util_Is_exe_32_or_64_bit(PCWSTR filename) {
-	HANDLE hFile = CreateFileW(filename,
-		GENERIC_READ | GENERIC_WRITE,
+	HANDLE hFile = CreateFileW(filename, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
-	if (hFile == INVALID_HANDLE_VALUE) {
+	//printf("%s : %lu\n", ws2c(filename), GetLastError());
+	if (!hFile || hFile == INVALID_HANDLE_VALUE) {
 		return 0;
 	}
 	LARGE_INTEGER high_size{ 0 };
 	DWORD file_size = GetFileSizeEx(hFile, &high_size);
-
+	
 	DWORD mmf_size = 512 * 1024;
 	DWORD size_high = 0;
 	// 创建文件映射，如果要创建内存页面文件的映射，
 	// 第一个参数设置为INVALID_HANDLE_VALUE
-	HANDLE hFm = CreateFileMapping(hFile,
-		NULL, PAGE_READWRITE,
-		size_high, mmf_size, NULL);
+	HANDLE hFm = CreateFileMapping(hFile, NULL,
+		PAGE_READONLY | SEC_IMAGE, size_high, mmf_size, NULL);
 
-	if (hFm == NULL) {
+	if (hFm == NULL || hFm == INVALID_HANDLE_VALUE) {
 		CloseHandle(hFile);
 		return 0;
 	}
 
 	size_t view_size = size_t(1024) * 256;
-	DWORD view_access = FILE_MAP_ALL_ACCESS;
+	DWORD view_access = /*FILE_MAP_ALL_ACCESS*/FILE_MAP_READ;
 
 	// 获得映射视图
-	char* base_address = (char*)MapViewOfFile(hFm, view_access, 0, 0, view_size);
-	if (base_address != NULL) {
+	PIMAGE_DOS_HEADER base_address = (PIMAGE_DOS_HEADER)
+		MapViewOfFile(hFm, view_access, 0, 0, view_size);
+	if (base_address != NULL) __try {
 		unsigned char result = 0;
-		IMAGE_DOS_HEADER* pDos = (IMAGE_DOS_HEADER*)base_address;
-		IMAGE_NT_HEADERS* pNt = (IMAGE_NT_HEADERS*)(pDos->e_lfanew + (char*)pDos);
+		PIMAGE_DOS_HEADER pDos = base_address;
+		PIMAGE_NT_HEADERS pNt = 
+			(PIMAGE_NT_HEADERS)(pDos->e_lfanew + (char*)pDos);
 
 		if (pNt->FileHeader.Machine == IMAGE_FILE_MACHINE_IA64 ||
 			pNt->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
@@ -149,7 +151,16 @@ unsigned char __stdcall util_Is_exe_32_or_64_bit(PCWSTR filename) {
 		// 关闭文件
 		CloseHandle(hFile);
 		return result;
-	} else {
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		SetLastError(GetExceptionCode());
+		UnmapViewOfFile(base_address);
+		CloseHandle(hFm);
+		CloseHandle(hFile);
+		return 0;
+	}
+	else {
+		CloseHandle(hFile);
 		return 0;
 	}
 }

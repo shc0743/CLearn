@@ -12,8 +12,6 @@
 #define new DEBUG_NEW
 #endif
 #include <TlHelp32.h>
-#include <string>
-#include "../../resource/tool.h"
 using namespace std;
 
 
@@ -105,9 +103,10 @@ DWORD __stdcall CMFCMyProcCtlUIDlg::Thread_RefreshList(PVOID arg) {
 		index++;
 	} while (::Process32Next(hsnap, &pe));
 	::CloseHandle(hsnap);
-
-	pobj->GetDlgItem(IDC_BUTTON_ATTACH_CONTROLLER)->EnableWindow();
-	pobj->GetDlgItem(IDC_BUTTON_DETACH_CONTROLLER)->EnableWindow();
+	if (pobj->cl.getopt(L"service-name")) {
+		pobj->GetDlgItem(IDC_BUTTON_ATTACH_CONTROLLER)->EnableWindow();
+		pobj->GetDlgItem(IDC_BUTTON_DETACH_CONTROLLER)->EnableWindow();
+	}
 	pobj->GetDlgItem(IDC_BUTTON_REFRESH_PROCS)->EnableWindow();
 
 	return 0;
@@ -151,7 +150,7 @@ BOOL CMFCMyProcCtlUIDlg::OnInitDialog()
 
 	//m_list_procs.SetImageList(pImageList, LVSIL_NORMAL);
 
-	CmdLineW cl(GetCommandLineW());
+	cl.parse(GetCommandLineW());
 	if (cl.getopt(L"service-name", ServiceName)) {
 		CString wt;
 		GetWindowText(wt);
@@ -275,17 +274,27 @@ void CMFCMyProcCtlUIDlg::OnBnClickedButtonAttachController() {
 					MessageBoxW(LastErrorStrW().c_str(), NULL, MB_ICONHAND);
 					break;
 				}
+				DWORD dwMode = PIPE_READMODE_MESSAGE;
+				(VOID)SetNamedPipeHandleState(
+					hPipe,    // pipe handle 
+					&dwMode,  // new pipe mode 
+					NULL,     // don't set maximum bytes 
+					NULL);    // don't set maximum time 
 				string str = "Attach-Process-Control /pid=" + to_string(pid);
 				::WriteFile(hPipe, str.c_str(), (DWORD)str.length(), &tmp, NULL);
-				(VOID)ReadFile(hPipe, pipe_name, 255, &tmp, 0);
-				if (0 == wcscmp(L"0", pipe_name)) {
-					MessageBox(ErrorCodeToString(0).c_str(), 0, MB_ICONINFORMATION);
-				} else {
+				auto _sub1 = [&] {
 					MessageBox((_T("Error: "s) +
-						ErrorCodeToString(atol(ws2s(pipe_name).c_str())) + 
+						ErrorCodeToString(atol(ws2s(pipe_name).c_str())) +
 						TEXT("\nRaw data:") + pipe_name)
-							.c_str(), 0, MB_ICONHAND);
+						.c_str(), 0, MB_ICONHAND);
+				};
+				if (ReadFile(hPipe, pipe_name, 255, &tmp, 0)) {
+					if (0 == wcscmp(L"0", pipe_name)) {
+						MessageBox(ErrorCodeToString(0).c_str(), 0, MB_ICONINFORMATION);
+					}
+					else _sub1();
 				}
+				else _sub1();
 				::CloseHandle(hPipe);
 #pragma warning(pop)
 			}

@@ -21,7 +21,7 @@ typedef struct {
 // functions
 
 //BOOL WINAPI MCtlEntry(MpCtlEntry_t*);
-AppVersion_t MGetVersion();
+AppVersion_t __stdcall MGetVersion();
 INT_PTR WINAPI MExecutionServiceSubProcess(PCWSTR);
 DWORD CALLBACK MRundInstall(HWND hWnd, HINSTANCE hInst, PSTR lpCmdLine, int nCmdShow);
 

@@ -32,16 +32,30 @@ DWORD __stdcall ServiceWorker_subpentry(PVOID) {
 	EnableAllPrivileges();
 
 	GetTempPathW(MAX_PATH - 32, DllToInject_Path);
-	wcscat_s(DllToInject_Path, wstring(L"/tmp" + szServiceName).c_str());
+	{ auto pos = wcslen(DllToInject_Path) - 1;
+	if (DllToInject_Path[pos] == L'\\') DllToInject_Path[pos] = 0; }
+	wcscat_s(DllToInject_Path, (L"\\tmp_"s + szServiceName).c_str());
 #ifdef _WIN64
-	FreeResFile(IDR_BIN_DLL_CTL_x64, L"BIN", DllToInject_Path + L"64.tmp"s);
+	FreeResFile(IDR_BIN_DLL_CTL_x64, L"BIN", DllToInject_Path + L"_64.tmp"s);
 #endif
-	FreeResFile(IDR_BIN_DLL_CTL_x86, L"BIN", DllToInject_Path + L"86.tmp"s);
+	FreeResFile(IDR_BIN_DLL_CTL_x86, L"BIN", DllToInject_Path + L"_86.tmp"s);
 
 	WCHAR szDllExportsPath[MAX_PATH + 2]{};
-	GetTempPathW(MAX_PATH - 18, szDllExportsPath);
-	GetTempFileNameW(wstring(szDllExportsPath).c_str(), L"", 0, szDllExportsPath);
+	wcscpy_s(szDllExportsPath, DllToInject_Path);
+	wcscat_s(szDllExportsPath, L"_exp.tmp");
+#ifdef _WIN64
 	FreeResFile(IDR_BIN_DLL_EXPORTS_x64, L"BIN", szDllExportsPath);
+#else
+	FreeResFile(IDR_BIN_DLL_EXPORTS_x86, L"BIN", szDllExportsPath);
+#endif
+
+	//STARTUPINFO si{}; PROCESS_INFORMATION pi{};
+	//si.cb = sizeof(si);
+	//(void)Process.StartAsActiveUserT(NULL, (LPTSTR)(L"cmd /c echo "s +
+	//	szDllExportsPath + L"&timeout 2").c_str(),
+	//	0, 0, 0, 0, 0, 0, &si, &pi);
+	//Process.CloseProcessHandle(pi);
+
 	hDllExports = LoadLibraryW(szDllExportsPath);
 
 	HANDLE hThread[3]{ 0 };
@@ -154,25 +168,37 @@ static DWORD __stdcall AttachProcessController(DWORD pid) {
 	wstring final_path = DllToInject_Path;
 	bool isx64 = false;
 
-	using __util_Is_exe_32_or_64_bit = unsigned char (*__stdcall)(PCWSTR);
+	using __util_Is_exe_32_or_64_bit = unsigned char (__stdcall*)(PCWSTR);
 	__util_Is_exe_32_or_64_bit util_Is_exe_32_or_64_bit = nullptr;
 	if (hDllExports) util_Is_exe_32_or_64_bit = (__util_Is_exe_32_or_64_bit)
 		GetProcAddress(hDllExports, "util_Is_exe_32_or_64_bit");
-	if (util_Is_exe_32_or_64_bit) isx64 = (util_Is_exe_32_or_64_bit(
-		Process.GetProcessFullPathById(pid).c_str()) == 64);
+	if (util_Is_exe_32_or_64_bit) {
+		auto path = Process.GetProcessFullPathById(pid);
+		str_replace(path, TEXT("\\"), TEXT("/"));
+		isx64 = (util_Is_exe_32_or_64_bit(path.c_str()) == 64);
+	}
 
-	if (isx64) final_path += L"64.tmp";
-	else       final_path += L"86.tmp";
+	if (isx64) final_path += L"_64.tmp";
+	else       final_path += L"_86.tmp";
+
+	//STARTUPINFO si{}; PROCESS_INFORMATION pi{};
+	//si.cb = sizeof(si);
+	//(void)Process.StartAsActiveUserT(NULL, (LPTSTR)(L"cmd /c echo "s +
+	//final_path + L" " + to_wstring((INT_PTR)util_Is_exe_32_or_64_bit) +
+	//L" &echo " + Process.GetProcessFullPathById(pid) + L"&timeout 2").c_str(),
+	//0, 0, 0, 0, 0, 0, &si, &pi);
+	//Process.CloseProcessHandle(pi);
+
 	HMODULE result = InjectDllToProcess_HANDLE(
 		hProcess, final_path.c_str(), 5000);
 	CloseHandle(hProcess);
 	return		(result == (HMODULE)-1) ? ERROR_TIMEOUT :
-				(result ? 0 : GetLastError());
+				(result ? ERROR_SUCCESS : GetLastError());
 }
 
 DWORD __stdcall ServiceWorker_pipe_control(PVOID) {
 	WCHAR pipe_name[256] = { 0 };  // Pipe name
-	LoadStringW(hInst, IDS_STRING_SVC_PIPENAME, pipe_name, 128);
+	LoadStringW(hInst, IDS_STRING_SVC_CTLM_PIPE, pipe_name, 128);
 	wcscat_s(pipe_name, L"\\");
 	wcscat_s(pipe_name, szServiceName);
 	HANDLE hCtlNamedPipe = CreateNamedPipeW(pipe_name,
@@ -194,9 +220,9 @@ DWORD __stdcall ServiceWorker_pipe_control(PVOID) {
 				if (string(buffer).find("Attach-Process-Control ") == 0) {
 					string str = buffer;
 					DWORD pid = atol(str.substr(str.find("/pid=") + 5).c_str());
-					WCHAR title[] = L"TEST";
-					wstring msg = to_wstring(pid);
-					DWORD tmp = 0;
+					//WCHAR title[] = L"TEST";
+					//wstring msg = to_wstring(pid);
+					//DWORD tmp = 0;
 					//WTSSendMessage(0, WTSGetActiveConsoleSessionId(), title
 					//, 4, (PWSTR)msg.c_str(), msg.length(), 0, 10, &tmp, 1);
 					if (!pid) {
