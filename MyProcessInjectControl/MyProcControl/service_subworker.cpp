@@ -134,9 +134,10 @@ static DWORD WINAPI ServiceWorker_subpui(PVOID _pid) {
 		WaitForSingleObject(pi.hProcess, INFINITE);
 		CloseHandle(pi.hProcess);
 
+		Process.flush();
 		if (Process.find(Process.GetParentProcessId(
 			GetCurrentProcessId())).id() == 0) // parent process died
-			return 0;                          // ... end process
+			return 0;                          // ... end thread
 	}
 
 	return 0;
@@ -155,6 +156,30 @@ DWORD __stdcall ServiceWorker_pprotect(PVOID _id) {
 	}
 	WaitForSingleObject(hProcess, INFINITE);
 	CloseHandle(hProcess);
+	{
+		STARTUPINFO si{ 0 };
+		si.cb = sizeof(si);
+		si.wShowWindow = SW_HIDE;
+		si.dwFlags = STARTF_USESHOWWINDOW;
+
+		PROCESS_INFORMATION pi{ 0 };
+
+		wstring app_name, s_cmd_line;
+		app_name = s2ws(GetProgramDir());
+		if (!app_name.empty()) {
+			s_cmd_line = L"\"" + app_name + L"\" --EndUserInterfaceInstances "
+				"--service-name=\"" + szServiceName + L"\"";
+			WCHAR cmd_line[512]{ 0 };
+			wcscpy_s(cmd_line, s_cmd_line.c_str());
+
+			if (CreateProcessInSession(WTSGetActiveConsoleSessionId(),
+				app_name.c_str(), cmd_line,
+				0, 0, 0, 0, 0, 0, &si, &pi)) {
+				CloseHandle(pi.hThread);
+				CloseHandle(pi.hProcess);
+			}
+		}
+	}
 	ServiceManager.Start(ws2s(szServiceName));
 	ExitProcess(ERROR_PROCESS_ABORTED);
 	return 0;

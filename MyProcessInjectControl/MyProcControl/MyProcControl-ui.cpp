@@ -1350,6 +1350,12 @@ LRESULT CALLBACK WndProc_RunProgramWithLimits(
 	}
 		break;
 
+	case WM_DROPFILES: {
+		HDROP hdrop = (HDROP)wParam;
+
+		break;
+	}
+
 	case WM_NCHITTEST:
 		return HTCAPTION;
 		break;
