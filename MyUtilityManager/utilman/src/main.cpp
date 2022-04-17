@@ -53,7 +53,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
 LONG WINAPI MyTopLevelExceptionFliter(_In_ PEXCEPTION_POINTERS ExceptionInfo) {
 	MessageBoxW(NULL, L"Unhandled Exception.\nClick [OK] to terminate process.",
-		NULL, MB_ICONERROR | MB_ABORTRETRYIGNORE);
+		NULL, MB_ICONERROR);
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
