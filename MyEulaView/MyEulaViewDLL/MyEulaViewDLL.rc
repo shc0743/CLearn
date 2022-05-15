@@ -1,0 +1,141 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 非特定语言(默认值) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,1,0,1
+ PRODUCTVERSION 1,1,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040004b0"
+        BEGIN
+            VALUE "CompanyName", "Company (@ExampleCompany) Release Publisher"
+            VALUE "FileDescription", "EULA Viewer"
+            VALUE "FileVersion", "1.1.0.1"
+            VALUE "InternalName", "EulaView.dll"
+            VALUE "LegalCopyright", "Open Source under MIT License"
+            VALUE "OriginalFilename", "EulaView.dll"
+            VALUE "ProductName", "MyEulaView"
+            VALUE "ProductVersion", "1.1.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x400, 1200
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+IDR_BIN_HTMLSCRIPT      BIN                     "res\\script.js"
+
+IDR_BIN_HTMLSTYLE       BIN                     "res\\style.css"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_STRING_DLL_UUID     "ee2bb0a4-83ff-4b44-b97d-4796bb1e9f66"
+    IDS_STRING_DLL_GUID     "{C1A161BB-504F-4615-9B7A-FC00F6ADD9F2}"
+    IDS_STRING_WNDCLASS_HTHANDLE "7a0a6e5b-a1f7-44c4-b5b8-08693e87e342"
+END
+
+#endif    // 非特定语言(默认值) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(中性) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+IDR_BIN_LICENSEs        BIN                     "res\\LICENSEs.txt"
+
+#endif    // 英语(中性) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

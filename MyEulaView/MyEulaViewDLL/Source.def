@@ -1,0 +1,13 @@
+LIBRARY
+
+EXPORTS
+	DLL_0
+	DLL_FindUserBrowser
+	DLL_ReleaseLicenses
+	DLL_test
+	DLL_test_RunDLL
+	EulaView_HTML
+	EulaView_HTML_ProtocolHandle
+	UrlProtocol_Create
+	UrlProtocol_Remove
+

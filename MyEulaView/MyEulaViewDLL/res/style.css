@@ -1,0 +1,49 @@
+iframe, #accept_dialog {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    border: 0;
+}
+iframe {
+    top: 0;
+    height: 100%;
+    z-index: 1;
+}
+#accept_dialog {
+    bottom: 0;
+    z-index: 2;
+    background: rgba(240, 240, 240, 0.8);
+    text-align: center;
+    user-select: none;
+    padding: 5px;
+}
+#accept_dialog button {
+    cursor: pointer;
+    padding: 5px 5px;
+    margin: 5px;
+    border: 1px solid;
+    border-radius: 5px;
+    font-size: 120%;
+}
+#accept_dialog button.accept {
+    background: #abcdef;
+}
+#accept_dialog button.accept:hover {
+    background: #ddeeff;
+}
+#accept_dialog button.accept[disabled] {
+    background: #abcdef;
+    cursor: not-allowed;
+}
+*[disabled] {
+    cursor: not-allowed;
+}
+#accept_dialog button.accept[data-n]::after {
+    content: " (" attr(data-n) ")";
+}
+#accept_dialog button.decline {
+    background: rgb(239, 239, 239);
+}
+#accept_dialog button.decline:hover {
+    background: rgb(250, 250, 250);
+}
