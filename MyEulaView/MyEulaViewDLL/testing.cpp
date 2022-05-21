@@ -10,6 +10,7 @@
 extern HINSTANCE hInst;
 
 BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data);
+DWORD WINAPI Thread_BrowserInjectionWorker(PVOID);
 
 DWORD __stdcall DLL_test(ULONGLONG test_id) {
 	switch (test_id) {
@@ -66,10 +67,12 @@ DWORD __stdcall DLL_test(ULONGLONG test_id) {
 		data.cb = sizeof(data);
 		data.dwTimesToAccept = 3;
 		wcscpy_s(data.szTitle, L"DEMO English 中文 ✔😊™™☸♂※ test");
-		data.position.usePosition = true;
+		data.position.usePosition = false;
 		data.position.x = data.position.y = 100;
 		data.position.width = 1024;
 		data.position.height = 768;
+		wcscpy_s(data.szLabelAccept, L"Accept and continue");
+		wcscpy_s(data.szLabelDecline, L"Decline and exit");
 
 		OPENFILENAMEW fn{};
 		fn.lStructSize = sizeof(fn);
@@ -92,12 +95,44 @@ DWORD __stdcall DLL_test(ULONGLONG test_id) {
 		break;
 	}
 
+#if 0
+	case 0xec5: {
+        WCHAR szWndClass1[1024]{};
+		LoadStringW(hInst, IDS_STRING_WNDCLASS_HTHANDLE, szWndClass1, 255);
+		HWND hw = CreateWindowExW(0, szWndClass1, L"test", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+			0, 0, 500, 300, 0, 0, 0, 0);
+
+        HANDLE ht = CreateThread(0, 0,
+            Thread_BrowserInjectionWorker, (PVOID)hw, 0, 0);
+        if (ht) CloseHandle(ht);
+
+		Sleep(3000);
+
+		CreateWindowExW(0, szWndClass1, L"test2", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+			0, 400, 500, 300, 0, 0, 0, 0);
+
+		MSG msg{};
+		while (GetMessage(&msg, 0, 0, 0)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		break;
+	}
+#endif
+
 	default:
 		return ERROR_INVALID_PARAMETER;
 	}
 	return 0;
 }
 void CALLBACK DLL_test_RunDLL(HWND _hwnd, HINSTANCE hinst, LPSTR lpCmdLine, int nCmdShow) {
+	SetUnhandledExceptionFilter([](PEXCEPTION_POINTERS exception)->LONG {
+		MessageBoxTimeoutW(0, L"Unhandled exception!!", NULL,
+			MB_ICONHAND | MB_TOPMOST, 0, 5000);
+		ExitProcess((UINT)exception->ExceptionRecord->ExceptionCode);
+		return EXCEPTION_CONTINUE_SEARCH;
+	});
 	AllocConsole();
 	HANDLE
 		in = GetStdHandle(STD_INPUT_HANDLE),

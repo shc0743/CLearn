@@ -1,18 +1,26 @@
 #pragma once
-#include "cppwin_include.h"
+#include <Windows.h>
 
 typedef struct __MYEULAVIEWDATA {
-	DWORD cb;
+	_In_ DWORD cb;
 
-	WCHAR szFile[MAX_PATH + 4];
-	WCHAR szTitle[256];
+	_In_ WCHAR szFile[MAX_PATH + 4];
+	_In_ WCHAR szTitle[256];
 
-	void(CALLBACK* pCallback)(BOOL, struct __MYEULAVIEWDATA);
+	_Out_ bool bAnyOperationFailed;
+	_Out_ bool bResult;
+	_Out_ DWORD dwErrorCode;
+	_Out_ DWORD dwErrTrack;
 
-	DWORD dwTimesToAccept;
-	DWORD dwTimeout;
+	_In_ DWORD dwTimesToAccept;
+	_In_ DWORD dwTimeout;
 
-	struct __position {
+	_Inout_ WCHAR szBrowser[MAX_PATH + 4];
+
+	_In_ WCHAR szLabelAccept[64];
+	_In_ WCHAR szLabelDecline[64];
+
+	_In_ struct __position {
 		bool usePosition;
 		LONG x;
 		LONG y;
@@ -20,5 +28,10 @@ typedef struct __MYEULAVIEWDATA {
 		UINT height;
 	} position;
 
+	_Inout_ void(CALLBACK* pCallback)(BOOL, struct __MYEULAVIEWDATA *);
+
 } MYEULAVIEWDATA, *PMYEULAVIEWDATA;
+
+typedef BOOL(WINAPI* EulaView_HTML_t)(PMYEULAVIEWDATA);
+constexpr PCSTR EulaView_HTML_n = "EulaView_HTML";
 

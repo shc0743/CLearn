@@ -1,8 +1,10 @@
+#include "cppwin_include.h"
 #include "EulaHtmlViewer.h"
 #include "../libs/tinyutf8.h"
 #include "../../resource/tool.h"
 #include "strutil.h"
 #include "UrlProtocol.h"
+#include "inject.h"
 #include "resource.h"
 
 extern HINSTANCE hInst;
@@ -26,24 +28,34 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 		return FALSE;
 	}
 
-	bool bUserAgreed = FALSE;
+	data->bAnyOperationFailed = true;
+	bool bUserAgreed = false;
+	data->bResult = bUserAgreed;
+
+	if (data->szFile[0] == 0) {
+		data->dwErrorCode = ERROR_INVALID_PARAMETER;
+		return FALSE;
+	}
 
 	WCHAR tmp_name[MAX_PATH + 16]{ 0 };
 	if (!GetTempPathW(MAX_PATH - 8, tmp_name)) {
+		data->dwErrorCode = GetLastError();
 		return FALSE;
 	}
 	srand((unsigned)time(0));
 	wstring szSessionId = s2ws(GenerateUUID());
 	wcscat_s(tmp_name, (szSessionId + L"\\").c_str());
 	if (!CreateDirectoryW(tmp_name, NULL)) {
+		data->dwErrorCode = GetLastError();
 		return FALSE;
 	}
 
 	wstring szPageLocation = tmp_name + L"/page.html"s;
+	if (wstring(data->szFile).find(L"://") == wstring::npos)
 	if (!CopyFileW(data->szFile, szPageLocation.c_str(), TRUE)) {
 		DWORD err = GetLastError();
 		RemoveDirectoryW(tmp_name);
-		SetLastError(err);
+		data->dwErrorCode = (err);
 		return FALSE;
 	}
 
@@ -53,22 +65,36 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 		DWORD err = GetLastError();
 		DeleteFileW(szPageLocation.c_str());
 		RemoveDirectoryW(tmp_name);
-		SetLastError(err);
+		data->dwErrorCode = (err);
 		return FALSE;
 	}
 
 	WCHAR szWndClass[256]{};
 	LoadStringW(hInst, IDS_STRING_WNDCLASS_HTHANDLE, szWndClass, 255);
-	HWND hwnd = CreateWindowExW(0, szWndClass, L"URL Handler Window",
-		0, 0, 0, 1, 1, 0, 0, hInst, 0);
+	HWND hwnd = CreateWindowExW(0, szWndClass,
+		data->szTitle[0] ? data->szTitle : L"EULA HTML Viewer Window",
+		WS_OVERLAPPEDWINDOW, 0, 0, 1, 1, 0, 0, hInst, 0);
 	if (!hwnd) {
 		DWORD err = GetLastError();
 		fileobject.close();
 		DeleteFileW(szMainHtmlName.c_str());
 		DeleteFileW(szPageLocation.c_str());
 		RemoveDirectoryW(tmp_name);
-		SetLastError(err);
+		data->dwErrorCode = (err);
 		return FALSE;
+	}
+	{
+		int x = 0, y = 0, cx = 800, cy = 600;
+		if (data->position.usePosition) {
+			x = data->position.x;
+			y = data->position.y;
+			cx = data->position.width;
+			cy = data->position.height;
+		}
+		SetWindowPos(hwnd, 0, x, y, cx, cy, SWP_NOACTIVATE);
+		if (!data->position.usePosition) {
+			CenterWindow(hwnd);
+		}
 	}
 
 	wstring ProtocolName = L"u" + szSessionId;
@@ -79,15 +105,16 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 		WCHAR c[MAX_PATH + 8]{};
 		GetModuleFileNameW(hInst, c, MAX_PATH + 4);
 		ProtocolCommand = L"rundll32.exe \""s + c +
-			L"\",EulaView_HTML_ProtocolHandle %1";
+			L"\",EulaView_HTML_ProtocolHandle \"%1\"";
 	}
 	if (!UrlProtocol_Create(ProtocolName.c_str(), ProtocolCommand.c_str())) {
 		DWORD err = GetLastError();
 		fileobject.close();
+		if (IsWindow(hwnd)) DestroyWindow(hwnd);
 		DeleteFileW(szMainHtmlName.c_str());
 		DeleteFileW(szPageLocation.c_str());
 		RemoveDirectoryW(tmp_name);
-		SetLastError(err);
+		data->dwErrorCode = (err);
 		return FALSE;
 	}
 
@@ -117,18 +144,32 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 			str2 += L"\nwindow.__dwTimesToAccept = " +
 				to_wstring(data->dwTimesToAccept) + L";";
 		}
+		if (data->szLabelAccept[0]) {
+			str2 += L"\nwindow.__szLabelAccept = `"s +
+				data->szLabelAccept + L"`;";
+		}
+		if (data->szLabelDecline[0]) {
+			str2 += L"\nwindow.__szLabelDecline = `"s +
+				data->szLabelDecline + L"`;";
+		}
 		string u8str2 = str_to_u8str(str2);
 		myWriteFileObject(u8str2);
 
 		main_html = u8"</script>\n    "
 			"<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"></link>\n"
-			"<script type=\"text/javascript\" src=\"script.js\"></script>\n"
+			"    <script type=\"text/javascript\" src=\"script.js\"></script>\n"
 			"</head>\n\n<body>\n"
 			"    <iframe src=\"";
 		myWriteFileObject(main_html);
 
-		wstring copy_of_szPageLocation(L"file:""///" + szPageLocation);
-		str_replace(copy_of_szPageLocation, L"\\", L"/");
+		wstring copy_of_szPageLocation;
+		if (wstring(data->szFile).find(L"://") == wstring::npos) {
+			copy_of_szPageLocation = (L"file:""///" + szPageLocation);
+			str_replace(copy_of_szPageLocation, L"\\", L"/");
+		}
+		else {
+			copy_of_szPageLocation = data->szFile;
+		}
 		string u8copy_of_szPageLocation = str_to_u8str(copy_of_szPageLocation);
 		myWriteFileObject(u8copy_of_szPageLocation);
 
@@ -151,17 +192,19 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 		L"\" --user-data-dir=\"" + user_data_dir + L"\"";
 
 	HANDLE hBrowserProcess = NULL, hBrowserJob = NULL;
+	DWORD dwBrowserProcessId = 0;
 	{
-		WCHAR browser[MAX_PATH + 4]{};
-		if (!DLL_FindUserBrowser(browser, MAX_PATH + 1)) {
+		if (!(data->szBrowser[0]))
+		if (!DLL_FindUserBrowser(data->szBrowser, MAX_PATH + 1)) {
+			if (IsWindow(hwnd)) DestroyWindow(hwnd);
 			UrlProtocol_Remove(ProtocolName.c_str());
 			DeleteFileW(szMainHtmlName.c_str());
 			DeleteFileW(szPageLocation.c_str());
 			RemoveDirectoryW(tmp_name);
-			SetLastError(ERROR_NOT_FOUND);
+			data->dwErrorCode = (ERROR_NOT_FOUND);
 			return FALSE;
 		}
-		szAppName = browser;
+		szAppName = data->szBrowser;
 
 		STARTUPINFOW si{};
 		PROCESS_INFORMATION pi{};
@@ -173,6 +216,8 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 			si.dwXSize = data->position.width;
 			si.dwYSize = data->position.height;
 		}
+		si.dwFlags |= STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
 
 		PWSTR cmdl = new WCHAR[szParamter.length() + 1];
 		wcscpy_s(cmdl, szParamter.length() + 1, szParamter.c_str());
@@ -180,60 +225,87 @@ BOOL WINAPI EulaView_HTML(PMYEULAVIEWDATA data) {
 		if (!CreateProcessW(szAppName.c_str(), cmdl, NULL, NULL,
 			FALSE, CREATE_SUSPENDED, 0, 0, &si, &pi)) {
 			DWORD err = GetLastError();
+			if (IsWindow(hwnd)) DestroyWindow(hwnd);
 			UrlProtocol_Remove(ProtocolName.c_str());
 			DeleteFileW(szMainHtmlName.c_str());
 			DeleteFileW(szPageLocation.c_str());
 			RemoveDirectoryW(tmp_name);
-			SetLastError(err);
+			data->dwErrorCode = (err);
 			return FALSE;
 		}
-		CloseHandle(pi.hThread);
+
 		hBrowserJob = CreateJobObject(0, 0);
+		JOBOBJECT_EXTENDED_LIMIT_INFORMATION jobeli{};
+		jobeli.BasicLimitInformation.LimitFlags =
+			JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+		SetInformationJobObject(hBrowserJob,
+			JobObjectBasicLimitInformation, &jobeli, sizeof(jobeli));
+		AssignProcessToJobObject(hBrowserJob, pi.hProcess);
+
+		ResumeThread(pi.hThread);
+		CloseHandle(pi.hThread);
+		//CloseHandle(pi.hProcess);
 		hBrowserProcess = pi.hProcess;
-		AssignProcessToJobObject(hBrowserJob, hBrowserProcess);
+		dwBrowserProcessId = pi.dwProcessId;
 	}
 
+	Thread_WaitForBrowser_waitdata* pWaiterData = NULL;
+	HANDLE hWaiter = NULL;
 	do {
-		Thread_WaitForBrowser_waitdata* dat = NULL;
-		dat = (Thread_WaitForBrowser_waitdata*)calloc(1, sizeof(dat));
-		if (!dat) break;
-		dat->hProcess = hBrowserProcess;
-		dat->time = (data->dwTimeout) ? data->dwTimeout : INFINITE;
-		dat->window = hwnd;
-		if (HANDLE ht = CreateThread(0, 0, Thread_WaitForBrowser, dat, 0, 0)) {
-			CloseHandle(ht);
-		}
+		pWaiterData = new Thread_WaitForBrowser_waitdata;
+		if (!pWaiterData) break;
+		memset(pWaiterData, 0, sizeof(pWaiterData));
+		pWaiterData->hProcess = hBrowserProcess;
+		pWaiterData->time = (data->dwTimeout) ? data->dwTimeout : INFINITE;
+		pWaiterData->window = hwnd;
+		hWaiter = CreateThread(0, 0, Thread_WaitForBrowser, pWaiterData, 0, 0);
 	} while (0);
-	Process.resume(hBrowserProcess);
+
+	ShowWindow(hwnd, SW_NORMAL);
+	SendMessage(hwnd, WM_USER + 0xd40, dwBrowserProcessId, 0);
+	SetTimer(hwnd, 0xd42, 100, 0);
 
 	{
 		MSG msg{ 0 };
-		while (GetMessage(&msg, 0, 0, 0)) {
-			DispatchMessage(&msg);
+		while (GetMessage(&msg, NULL, 0, 0)) {
 			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 		bUserAgreed = (bool)msg.wParam;
 	}
 
 //clean:
+	if (hWaiter) {
+#pragma warning(push)
+#pragma warning(disable: 6258)
+		TerminateThread(hWaiter, -1);
+#pragma warning(pop)
+		CloseHandle(hWaiter);
+	}
+	if (pWaiterData) { delete pWaiterData; }
 	if (hBrowserJob) {
-		[] (HANDLE hBrowserJob) { __try {
+		[] (HANDLE hBrowserJob, DWORD timeout) { __try {
 			TerminateJobObject(hBrowserJob, STATUS_CONTROL_C_EXIT);
+			WaitForMultipleObjects(1, &hBrowserJob, TRUE,
+				(timeout) ? ((timeout > 1000) ? 1000 : timeout) : INFINITE);
 			CloseHandle(hBrowserJob);
 		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {}; }(hBrowserJob);
+		__except (EXCEPTION_EXECUTE_HANDLER) {}; }
+		(hBrowserJob, data->dwTimeout);
 	}
 	if (hBrowserProcess) {
-		[] (HANDLE hBrowserProcess) { __try {
-			TerminateProcess(hBrowserProcess, 0);
-			CloseHandle(hBrowserProcess);
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {}; }(hBrowserProcess);
+		[&hBrowserProcess] {__try { CloseHandle(hBrowserProcess); }
+		__except (EXCEPTION_EXECUTE_HANDLER) {}}();
 	}
+	if (IsWindow(hwnd)) DestroyWindow(hwnd);
 	UrlProtocol_Remove(ProtocolName.c_str());
 	FileDeleteTreeW(tmp_name);
-	FileDeleteTreeW(tmp_name);
 
+	data->bAnyOperationFailed = false;
+	data->bResult = bUserAgreed;
+	if (data->pCallback) data->pCallback(bUserAgreed, data);
+	if (bUserAgreed) data->dwErrorCode = ERROR_SUCCESS;
+	else data->dwErrorCode = ERROR_CANCELLED;
 	return bUserAgreed;
 }
 
@@ -276,10 +348,97 @@ void CALLBACK EulaView_HTML_ProtocolHandle(
 		return;
 	}
 	if (part3 == L"accept")
-		SendMessage(hwnd, WM_USER + 0xacc, 0, 0);
+		SendMessage(hwnd, WM_USER + 0xacc, 1, 0);
 	else if (part3 == L"decline")
-		SendMessage(hwnd, WM_USER + 0xdec, 0, 0);
+		SendMessage(hwnd, WM_USER + 0xacc, 0, 0);
 
+}
+
+
+void CALLBACK EulaView_HTML_CommandLine(
+	HWND _hwnd, HINSTANCE hinst, LPSTR lpCmdLine, int nCmdShow
+) {
+	using namespace std;
+
+	CmdLineA cl(lpCmdLine);
+
+	if (cl.getopt("help")) {
+		char str[] = "--file=<File> --title=<title> [--timeout] [--dwTimesTo"
+			"Accept] [--browser] [--accept] [--decline] [--position=x,y,w,h]";
+		if (GetConsoleWindow()) {
+			cout << str << endl;
+		}
+		else {
+			MessageBoxA(NULL, str, "Help Information", MB_ICONINFORMATION);
+		}
+
+		return;
+	}
+
+	string szFile;
+	if (cl.getopt("file", szFile) != 1)
+		ExitProcess(ERROR_INVALID_PARAMETER);
+
+	MYEULAVIEWDATA dat{};
+	dat.cb = sizeof(dat);
+	
+	wcscpy_s(dat.szFile, s2wc(szFile));
+
+	string str;
+	if (cl.getopt("title", str) == 1) {
+		wcscpy_s(dat.szTitle, s2wc(str));
+	}
+	else ExitProcess(ERROR_INVALID_PARAMETER);
+	if (cl.getopt("timeout", str) == 1) {
+		dat.dwTimeout = atol(str.c_str());
+	}
+	if (cl.getopt("dwTimesToAccept", str) == 1) {
+		dat.dwTimesToAccept = atol(str.c_str());
+	}
+	if (cl.getopt("browser", str) == 1) {
+		wcscpy_s(dat.szBrowser, s2wc(str));
+	}
+	if (cl.getopt("accept", str) == 1) {
+		wcscpy_s(dat.szLabelAccept, s2wc(str));
+	}
+	if (cl.getopt("decline", str) == 1) {
+		wcscpy_s(dat.szLabelDecline, s2wc(str));
+	}
+
+	if (cl.getopt("position", str) == 1) {
+		vector<string> strs;
+		str_split(str, ",", strs);
+		if (strs.size() >= 4) {
+			dat.position.usePosition = true;
+			dat.position.x = atol(strs[0].c_str());
+			dat.position.y = atol(strs[1].c_str());
+			dat.position.width = atol(strs[2].c_str());
+			dat.position.height = atol(strs[3].c_str());
+		}
+	}
+
+	auto result = EulaView_HTML(&dat);
+
+	auto bool2str = [](bool b) {
+		return b ? "true" : "false";
+	};
+	
+	char buffer[1024]{};
+	sprintf_s(buffer, "%s\n"
+		"Code: %lu\n"
+		"Result: %s\n"
+		"Failed : %s\n",
+		ErrorCodeToStringA(dat.dwErrorCode).c_str(),
+		dat.dwErrorCode,
+		bool2str(dat.bResult),
+		bool2str(dat.bAnyOperationFailed));
+
+	AttachConsole(ATTACH_PARENT_PROCESS);
+	::puts(buffer); DWORD dw1 = 0;
+	WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE),
+		buffer, (DWORD)strlen(buffer), &dw1, 0);
+
+	ExitProcess(result);
 }
 
 
@@ -323,6 +482,8 @@ BOOL DLL_FindUserBrowser(PWSTR str, DWORD size) {
 typedef struct {
 	DWORD dwTimeout;
 	bool bUserAgreed;
+	HWND childHwnd;
+	DWORD dwProcessId;
 } WndProc_EulaView_HTML_t;
 std::map<HWND, WndProc_EulaView_HTML_t*> WndProc_EulaView_HTML_d;
 LRESULT CALLBACK WndProc_EulaView_HTML(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -340,17 +501,77 @@ LRESULT CALLBACK WndProc_EulaView_HTML(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
 	case WM_USER+0xacc:
 		try {
-			WndProc_EulaView_HTML_d.at(hwnd)->bUserAgreed = true;
+			WndProc_EulaView_HTML_d.at(hwnd)->bUserAgreed = (bool)wParam;
 			DestroyWindow(hwnd);
 		}
 		catch (...) {}
 		break;
-	case WM_USER+0xdec:
+
+	case WM_USER+0xcd0:
 		try {
-			WndProc_EulaView_HTML_d.at(hwnd)->bUserAgreed = false;
-			DestroyWindow(hwnd);
+			WndProc_EulaView_HTML_d.at(hwnd)->childHwnd = (HWND)wParam;
 		}
 		catch (...) {}
+		break;
+
+	case WM_USER+0xd40:
+		try {
+			WndProc_EulaView_HTML_d.at(hwnd)->dwProcessId = (DWORD)wParam;
+		}
+		catch (...) {}
+		break;
+
+	case WM_SETFOCUS:
+		try {
+			SetForegroundWindow(WndProc_EulaView_HTML_d.at(hwnd)->childHwnd);
+		}
+		catch (...) {}
+		break;
+
+	case WM_SIZE:
+		try {
+			HWND hw = WndProc_EulaView_HTML_d.at(hwnd)->childHwnd;
+			RECT rc{};
+			GetClientRect(hwnd, &rc);
+			SetWindowPos(hw, 0, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
+		}
+		catch (...) {}
+		break;
+
+	case WM_TIMER:
+		switch (wParam) {
+		case 0xd42: {
+			try {
+				std::vector<HWND> windows;
+				Process.findWindows(Process_t::ProcessInfo(TEXT(""),
+					WndProc_EulaView_HTML_d.at(hwnd)->dwProcessId), windows);
+				if (!windows.empty())
+				for (auto& wnd : windows) {
+					if (!(GetWindowLongPtr(wnd, GWL_STYLE) & WS_BORDER) ||
+						!(GetWindowLongPtr(wnd, GWL_STYLE) & WS_SYSMENU)) continue;
+					if (!IsWindowEnabled(wnd)) continue;
+					if (GetParent(wnd) != NULL) continue;
+					if (SendMessage(wnd, WM_GETTEXTLENGTH, 0, 0) < 1) continue;
+
+					SendMessage(hwnd, WM_USER + 0xcd0, (WPARAM)wnd, 0);
+					SetParent(wnd, hwnd);
+					ShowWindow(wnd, SW_NORMAL);
+					SetWindowLongPtr(wnd, GWL_STYLE, GetWindowLongPtr(wnd, GWL_STYLE)
+						& ~WS_POPUP | WS_CHILD);
+					SetWindowPos(wnd, 0, 0, 0, 0, 0,
+						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+					KillTimer(hwnd, wParam);
+					SendMessage(hwnd, WM_SIZE, 0, 0);
+					break;
+				}
+			}
+			catch (...) {}
+			break;
+		}
+
+		default:
+			return DefWindowProc(hwnd, msg, wParam, lParam);
+		}
 		break;
 
 	case WM_DESTROY: {
@@ -374,12 +595,16 @@ LRESULT CALLBACK WndProc_EulaView_HTML(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 	return 0;
 }
 
-DWORD __stdcall Thread_WaitForBrowser(void* data) {
+static DWORD __stdcall Thread_WaitForBrowser(void* data) {
 	Thread_WaitForBrowser_waitdata* dat = (Thread_WaitForBrowser_waitdata*)data;
 	//MessageBoxW(0, std::to_wstring((INT_PTR)dat->window).c_str(), 0, 0);
-	if (dat->hProcess) WaitForSingleObject(dat->hProcess, dat->time);
-	SendMessage(dat->window, WM_USER + 0x44, 0, 0);
-	free(dat);
+	if (dat->hProcess) {
+		HANDLE hp = dat->hProcess;
+		WaitForMultipleObjects(1, &hp, TRUE,
+			dat->time ? dat->time : INFINITE);
+		SendMessage(dat->window, WM_USER + 0x44, 0, 0);
+	}
 	return 0;
 }
+
 

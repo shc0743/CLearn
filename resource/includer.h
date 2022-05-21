@@ -1,5 +1,4 @@
 #pragma once
-#include "../../resource/tool.h"
 #include<iostream>
 #include<fstream>
 #include<sstream>

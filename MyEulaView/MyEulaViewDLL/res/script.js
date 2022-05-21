@@ -10,8 +10,8 @@
         let accept_dialog = document.createElement('div');
         accept_dialog.id = 'accept_dialog';
         accept_dialog.innerHTML =
-            "<button class=\"accept\">Accept</button>" + 
-            "<button class=\"decline\">Decline</button>";
+            "<button class=\"accept\"></button>" + 
+            "<button class=\"decline\"></button>";
         document.body.appendChild(accept_dialog);
 
         let window_onresize = function () {
@@ -20,11 +20,15 @@
                 accept_dialog.offsetHeight + 'px';
         }
         window.addEventListener('resize', window_onresize);
+        window.addEventListener('load', window_onresize);
         window_onresize();
 
         let 
             accept = accept_dialog.querySelector('.accept') || {},
             decline = accept_dialog.querySelector('.decline') || {};
+
+        accept.innerText = window.__szLabelAccept || 'Accept';
+        decline.innerText = window.__szLabelDecline || 'Decline';
 
         if (window.__dwTimesToAccept) {
             accept.disabled = true;

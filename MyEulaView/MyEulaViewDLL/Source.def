@@ -7,6 +7,7 @@ EXPORTS
 	DLL_test
 	DLL_test_RunDLL
 	EulaView_HTML
+	EulaView_HTML_CommandLine
 	EulaView_HTML_ProtocolHandle
 	UrlProtocol_Create
 	UrlProtocol_Remove

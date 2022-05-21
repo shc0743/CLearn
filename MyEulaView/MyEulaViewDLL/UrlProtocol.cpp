@@ -1,6 +1,7 @@
 #include "UrlProtocol.h"
-#include "../../resource/tool.h"
 
+
+static bool IsRunAsAdmin();
 
 bool __stdcall UrlProtocol_Create(PCWSTR protocol_name, PCWSTR command) {
 	using namespace std;
@@ -64,5 +65,26 @@ bool __stdcall UrlProtocol_Remove(PCWSTR protocol_name) {
 	if (hk != HKEY_CLASSES_ROOT) RegCloseKey(hk);
 	SetLastError((DWORD)result);
 	return !result;
+}
+
+static bool IsRunAsAdmin() {
+	BOOL bElevated = false;
+	HANDLE hToken = NULL;
+	// Get current process token
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+		return false;
+	TOKEN_ELEVATION tokenEle = {0};
+	DWORD dwRetLen = 0;
+	// Retrieve token elevation information
+	if (GetTokenInformation(hToken, TokenElevation,
+		&tokenEle, sizeof(tokenEle), &dwRetLen))
+	{
+		if (dwRetLen == sizeof(tokenEle))
+		{
+			bElevated = tokenEle.TokenIsElevated;
+		}
+	}
+	CloseHandle(hToken);
+	return bElevated;
 }
 
